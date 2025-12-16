@@ -1,0 +1,18 @@
+name: MultiMace
+version: '1.0'
+main: org.bonkmc.multiMace.MultiMace
+api-version: '1.21'
+authors: [ Pyro ]
+website: https://discord.gg/bonknetwork
+
+commands:
+  maces:
+    description: View tracked maces or reload config
+    usage: /maces [reload]
+    permission: multimace.use
+
+permissions:
+  multimace.use:
+    default: true
+  multimace.reload:
+    default: op
