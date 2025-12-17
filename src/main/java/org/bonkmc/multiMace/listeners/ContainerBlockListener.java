@@ -33,7 +33,7 @@ public final class ContainerBlockListener implements Listener {
 
     /**
      * Checks if the top inventory should be blocked for maces.
-     * Anvils and enchantment tables are exempted if allow-mace-enchanting is enabled.
+     * Anvils, enchantment tables, and grindstones are exempted if allow-mace-enchanting is enabled.
      */
     private boolean shouldBlockTop(InventoryView view) {
         if (view == null || view.getTopInventory() == null) {
@@ -45,7 +45,7 @@ public final class ContainerBlockListener implements Listener {
             return false;
         }
 
-        // Exempt anvils and enchantment tables if allow-mace-enchanting is enabled
+        // Exempt anvils, enchantment tables, and grindstones if allow-mace-enchanting is enabled
         if (plugin.cfg().isAllowMaceEnchanting()) {
             if (isAnvilOrEnchantmentTable(top)) {
                 return false;
@@ -56,7 +56,7 @@ public final class ContainerBlockListener implements Listener {
     }
 
     /**
-     * Checks if the inventory belongs to an anvil or enchantment table block.
+     * Checks if the inventory belongs to an anvil, enchantment table, or grindstone block.
      * Uses multiple detection methods for reliability.
      */
     private boolean isAnvilOrEnchantmentTable(Inventory inventory) {
@@ -69,7 +69,8 @@ public final class ContainerBlockListener implements Listener {
             if (blockType == Material.ANVIL || 
                 blockType == Material.CHIPPED_ANVIL || 
                 blockType == Material.DAMAGED_ANVIL ||
-                blockType == Material.ENCHANTING_TABLE) {
+                blockType == Material.ENCHANTING_TABLE ||
+                blockType == Material.GRINDSTONE) {
                 return true;
             }
         }
@@ -77,7 +78,7 @@ public final class ContainerBlockListener implements Listener {
         // Method 2: Check inventory type name using reflection-safe string comparison
         try {
             String typeName = inventory.getType().name();
-            if (typeName.equals("ANVIL") || typeName.equals("ENCHANTING")) {
+            if (typeName.equals("ANVIL") || typeName.equals("ENCHANTING") || typeName.equals("GRINDSTONE")) {
                 return true;
             }
         } catch (Exception ignored) {
@@ -90,7 +91,8 @@ public final class ContainerBlockListener implements Listener {
             if (blockType == Material.ANVIL || 
                 blockType == Material.CHIPPED_ANVIL || 
                 blockType == Material.DAMAGED_ANVIL ||
-                blockType == Material.ENCHANTING_TABLE) {
+                blockType == Material.ENCHANTING_TABLE ||
+                blockType == Material.GRINDSTONE) {
                 return true;
             }
         }
@@ -99,7 +101,7 @@ public final class ContainerBlockListener implements Listener {
     }
     
     /**
-     * Checks if the inventory view is for an anvil or enchantment table.
+     * Checks if the inventory view is for an anvil, enchantment table, or grindstone.
      */
     private boolean isAnvilOrEnchantmentTable(InventoryView view) {
         if (view == null) return false;
@@ -113,9 +115,9 @@ public final class ContainerBlockListener implements Listener {
 
         InventoryView view = e.getView();
         
-        // Early exemption check for anvils and enchantment tables
+        // Early exemption check for anvils, enchantment tables, and grindstones
         if (plugin.cfg().isAllowMaceEnchanting() && isAnvilOrEnchantmentTable(view)) {
-            return; // Allow maces in anvils/enchantment tables
+            return; // Allow maces in anvils/enchantment tables/grindstones
         }
         
         if (!shouldBlockTop(view)) return;
@@ -175,9 +177,9 @@ public final class ContainerBlockListener implements Listener {
 
         InventoryView view = e.getView();
         
-        // Early exemption check for anvils and enchantment tables
+        // Early exemption check for anvils, enchantment tables, and grindstones
         if (plugin.cfg().isAllowMaceEnchanting() && isAnvilOrEnchantmentTable(view)) {
-            return; // Allow maces in anvils/enchantment tables
+            return; // Allow maces in anvils/enchantment tables/grindstones
         }
         
         if (!shouldBlockTop(view)) return;
@@ -240,7 +242,7 @@ public final class ContainerBlockListener implements Listener {
     }
 
     // If a mace somehow exists in a container/anvil/enchant/etc, strip it out when opened
-    // Anvils and enchantment tables are exempted if allow-mace-enchanting is enabled
+    // Anvils, enchantment tables, and grindstones are exempted if allow-mace-enchanting is enabled
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onOpen(InventoryOpenEvent e) {
         if (!(e.getPlayer() instanceof Player p)) return;
@@ -248,7 +250,7 @@ public final class ContainerBlockListener implements Listener {
         Inventory top = e.getView().getTopInventory();
         if (top == null) return;
 
-        // Exempt anvils and enchantment tables if allow-mace-enchanting is enabled
+        // Exempt anvils, enchantment tables, and grindstones if allow-mace-enchanting is enabled
         if (plugin.cfg().isAllowMaceEnchanting()) {
             if (isAnvilOrEnchantmentTable(top)) {
                 return;

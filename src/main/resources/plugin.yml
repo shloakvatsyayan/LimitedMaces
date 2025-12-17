@@ -1,5 +1,5 @@
 name: MultiMace
-version: '1.1.2'
+version: '1.1.3'
 main: org.bonkmc.multiMace.MultiMace
 api-version: '1.21'
 authors: [ Pyro ]
