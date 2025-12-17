@@ -1,5 +1,5 @@
 name: MultiMace
-version: '1.1.1'
+version: '1.1.2'
 main: org.bonkmc.multiMace.MultiMace
 api-version: '1.21'
 authors: [ Pyro ]
@@ -21,7 +21,7 @@ commands:
 
 permissions:
   multimace.use:
-    default: true
+    default: op
   multimace.reload:
     default: op
   multimace.getuntracked:

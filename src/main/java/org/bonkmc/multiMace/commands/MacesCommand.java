@@ -62,9 +62,11 @@ public final class MacesCommand implements CommandExecutor, TabCompleter {
 
             sender.sendMessage(plugin.cfg().color("&6#" + (i++) + " &e" + shortId +
                     " &7status=&f" + r.status +
-                    " &7lastHolder=&f" + holder +
-                    " &7lastSeen=&f" + when +
-                    " &7at=&f" + loc));
+                    " &7lastHolder=&f" + holder //+
+                    //" &7lastSeen=&f" + when +
+                    //" &7at=&f" + loc
+                    )
+            );
         }
 
         if (sender instanceof Player) {

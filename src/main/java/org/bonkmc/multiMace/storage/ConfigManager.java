@@ -12,7 +12,7 @@ import java.nio.file.StandardCopyOption;
 
 public final class ConfigManager {
     private final JavaPlugin plugin;
-    private static final String CONFIG_VERSION = "1.1.1";
+    private static final String CONFIG_VERSION = "1.1.2";
 
     private File file;
     private YamlConfiguration yaml;
