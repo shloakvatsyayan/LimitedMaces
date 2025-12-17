@@ -31,10 +31,6 @@ public final class ContainerBlockListener implements Listener {
         return rawSlot >= 0 && rawSlot < view.getTopInventory().getSize();
     }
 
-    /**
-     * Checks if the top inventory should be blocked for maces.
-     * Anvils, enchantment tables, and grindstones are exempted if allow-mace-enchanting is enabled.
-     */
     private boolean shouldBlockTop(InventoryView view) {
         if (view == null || view.getTopInventory() == null) {
             return false;
@@ -45,7 +41,6 @@ public final class ContainerBlockListener implements Listener {
             return false;
         }
 
-        // Exempt anvils, enchantment tables, and grindstones if allow-mace-enchanting is enabled
         if (plugin.cfg().isAllowMaceEnchanting()) {
             if (isAnvilOrEnchantmentTable(top)) {
                 return false;
@@ -55,14 +50,9 @@ public final class ContainerBlockListener implements Listener {
         return true;
     }
 
-    /**
-     * Checks if the inventory belongs to an anvil, enchantment table, or grindstone block.
-     * Uses multiple detection methods for reliability.
-     */
     private boolean isAnvilOrEnchantmentTable(Inventory inventory) {
         if (inventory == null) return false;
         
-        // Method 1: Check holder as BlockState
         InventoryHolder holder = inventory.getHolder();
         if (holder instanceof BlockState blockState) {
             Material blockType = blockState.getType();
@@ -75,17 +65,14 @@ public final class ContainerBlockListener implements Listener {
             }
         }
         
-        // Method 2: Check inventory type name using reflection-safe string comparison
         try {
             String typeName = inventory.getType().name();
             if (typeName.equals("ANVIL") || typeName.equals("ENCHANTING") || typeName.equals("GRINDSTONE")) {
                 return true;
             }
         } catch (Exception ignored) {
-            // If getType() is not available, continue to next method
         }
         
-        // Method 3: Check holder as Block
         if (holder instanceof Block block) {
             Material blockType = block.getType();
             if (blockType == Material.ANVIL || 
@@ -100,9 +87,6 @@ public final class ContainerBlockListener implements Listener {
         return false;
     }
     
-    /**
-     * Checks if the inventory view is for an anvil, enchantment table, or grindstone.
-     */
     private boolean isAnvilOrEnchantmentTable(InventoryView view) {
         if (view == null) return false;
         Inventory top = view.getTopInventory();
@@ -115,9 +99,8 @@ public final class ContainerBlockListener implements Listener {
 
         InventoryView view = e.getView();
         
-        // Early exemption check for anvils, enchantment tables, and grindstones
         if (plugin.cfg().isAllowMaceEnchanting() && isAnvilOrEnchantmentTable(view)) {
-            return; // Allow maces in anvils/enchantment tables/grindstones
+            return;
         }
         
         if (!shouldBlockTop(view)) return;
@@ -127,28 +110,24 @@ public final class ContainerBlockListener implements Listener {
         ItemStack cursor = e.getCursor();
         ItemStack current = e.getCurrentItem();
 
-        // 1) Shift-click: moving mace from player inventory INTO the top inventory
         if (e.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY && isMace(current) && !inTop) {
             e.setCancelled(true);
             p.sendMessage(plugin.cfg().msg("containers-blocked"));
             return;
         }
 
-        // 2) Any placement of a mace (cursor) into a TOP slot (chest/barrel/hopper/anvil/enchant/etc)
         if (inTop && isMace(cursor)) {
-            // Cancel any action that would place/swap the cursor item into the top slot
             switch (e.getAction()) {
                 case PLACE_ALL:
                 case PLACE_ONE:
                 case PLACE_SOME:
                 case SWAP_WITH_CURSOR:
                 case HOTBAR_SWAP:
-                case HOTBAR_MOVE_AND_READD: // if present in your API, harmless; if removed, just delete this line
+                case HOTBAR_MOVE_AND_READD:
                     e.setCancelled(true);
                     p.sendMessage(plugin.cfg().msg("containers-blocked"));
                     return;
                 default:
-                    // Also block common click-types that can still insert into slots
                     if (e.getClick() == ClickType.NUMBER_KEY || e.getClick() == ClickType.SWAP_OFFHAND) {
                         e.setCancelled(true);
                         p.sendMessage(plugin.cfg().msg("containers-blocked"));
@@ -158,7 +137,6 @@ public final class ContainerBlockListener implements Listener {
             }
         }
 
-        // 3) Number-key swap into TOP slot
         if (inTop && (e.getAction() == InventoryAction.HOTBAR_SWAP || e.getClick() == ClickType.NUMBER_KEY)) {
             int btn = e.getHotbarButton();
             if (btn >= 0) {
@@ -177,9 +155,8 @@ public final class ContainerBlockListener implements Listener {
 
         InventoryView view = e.getView();
         
-        // Early exemption check for anvils, enchantment tables, and grindstones
         if (plugin.cfg().isAllowMaceEnchanting() && isAnvilOrEnchantmentTable(view)) {
-            return; // Allow maces in anvils/enchantment tables/grindstones
+            return;
         }
         
         if (!shouldBlockTop(view)) return;
@@ -204,11 +181,7 @@ public final class ContainerBlockListener implements Listener {
         
         ItemStack cursor = e.getCursor();
         
-        // Prevent mace from being taken out of creative menu (into player inventory)
-        // Only block untracked maces (those from creative menu item list)
-        // Tracked maces (crafted) should still be allowed to be moved
         if (isMace(cursor) && !isTopSlot(view, e.getRawSlot())) {
-            // Check if mace is untracked (came from creative menu)
             if (!plugin.registry().isTrackedMace(cursor)) {
                 e.setCancelled(true);
                 p.sendMessage(plugin.cfg().msg("containers-blocked"));
@@ -216,9 +189,8 @@ public final class ContainerBlockListener implements Listener {
             }
         }
         
-        // Early exemption check for anvils and enchantment tables
         if (plugin.cfg().isAllowMaceEnchanting() && isAnvilOrEnchantmentTable(view)) {
-            return; // Allow maces in anvils/enchantment tables
+            return;
         }
         
         if (!shouldBlockTop(view)) return;
@@ -229,20 +201,16 @@ public final class ContainerBlockListener implements Listener {
         }
     }
 
-    // Hoppers picking up dropped items (you said this works)
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPickup(InventoryPickupItemEvent e) {
         if (isMace(e.getItem().getItemStack())) e.setCancelled(true);
     }
 
-    // Hopper transfers between inventories
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onMove(InventoryMoveItemEvent e) {
         if (isMace(e.getItem())) e.setCancelled(true);
     }
 
-    // If a mace somehow exists in a container/anvil/enchant/etc, strip it out when opened
-    // Anvils, enchantment tables, and grindstones are exempted if allow-mace-enchanting is enabled
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onOpen(InventoryOpenEvent e) {
         if (!(e.getPlayer() instanceof Player p)) return;
@@ -250,7 +218,6 @@ public final class ContainerBlockListener implements Listener {
         Inventory top = e.getView().getTopInventory();
         if (top == null) return;
 
-        // Exempt anvils, enchantment tables, and grindstones if allow-mace-enchanting is enabled
         if (plugin.cfg().isAllowMaceEnchanting()) {
             if (isAnvilOrEnchantmentTable(top)) {
                 return;
@@ -276,8 +243,6 @@ public final class ContainerBlockListener implements Listener {
         if (found) {
             top.setContents(contents);
             p.sendMessage(plugin.cfg().msg("containers-blocked"));
-            // Don't scan inventory here - it's unnecessary and can trigger advancement re-checks
-            // The maces were already moved to player inventory, they'll be tracked on next pickup/scan
             plugin.recipes().syncWithLimit();
         }
     }

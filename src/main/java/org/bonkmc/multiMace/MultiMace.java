@@ -29,12 +29,10 @@ public final class MultiMace extends JavaPlugin {
 
         this.recipeController = new RecipeController(this);
 
-        // Listeners
         Bukkit.getPluginManager().registerEvents(new CraftingListener(this), this);
         Bukkit.getPluginManager().registerEvents(new ContainerBlockListener(this), this);
         Bukkit.getPluginManager().registerEvents(new TrackingListener(this), this);
 
-        // Commands
         MacesCommand cmd = new MacesCommand(this);
         if (getCommand("maces") != null) {
             getCommand("maces").setExecutor(cmd);
@@ -51,12 +49,10 @@ public final class MultiMace extends JavaPlugin {
             getCommand("clearuntrackedmaces").setExecutor(clearUntrackedCmd);
         }
 
-        // Re-scan online players (useful on /reload or plugin reloads)
         for (Player p : Bukkit.getOnlinePlayers()) {
             maceRegistry.scanAndNormalizePlayerInventory(p);
         }
 
-        // Sync recipes based on current count vs limit
         recipeController.syncWithLimit();
 
         getLogger().info("MultiMace enabled. Tracked maces: " + maceRegistry.getActiveCount() +

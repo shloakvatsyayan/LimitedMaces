@@ -34,7 +34,6 @@ public final class MaceRegistry {
 
         File dataDir = new File(plugin.getDataFolder(), "data");
         if (!dataDir.exists()) {
-            //noinspection ResultOfMethodCallIgnored
             dataDir.mkdirs();
         }
         this.dataFile = new File(dataDir, "maces.yml");
@@ -203,7 +202,6 @@ public final class MaceRegistry {
     public void ensureRegisteredExisting(UUID id, Player holder, Location where, String status) {
         MaceRecord r = active.get(id);
         if (r == null) {
-            // Adopt into registry (if room)
             if (getActiveCount() >= plugin.cfg().getAllowedMaces()) {
                 return;
             }
@@ -259,10 +257,9 @@ public final class MaceRegistry {
         ItemMeta meta = mace.getItemMeta();
         if (meta == null) return;
         
-        // Check if item already has this tag to avoid unnecessary metadata updates
         String existing = meta.getPersistentDataContainer().get(maceIdKey, PersistentDataType.STRING);
         if (existing != null && existing.equals(id.toString())) {
-            return; // Already tagged with this ID, no need to modify
+            return;
         }
         
         meta.getPersistentDataContainer().set(maceIdKey, PersistentDataType.STRING, id.toString());
@@ -278,7 +275,6 @@ public final class MaceRegistry {
         all.addAll(Arrays.asList(inv.getContents()));
         all.add(inv.getItemInOffHand());
 
-        // Avoid duplicate IDs held by same player (duplication edge case)
         Set<UUID> seenIds = new HashSet<>();
 
         for (ItemStack it : all) {
@@ -289,7 +285,6 @@ public final class MaceRegistry {
                 UUID id = maybe.get();
 
                 if (seenIds.contains(id)) {
-                    // Duplicate copy with same ID -> delete it
                     removeOneFromInventory(p, id);
                     p.sendMessage(plugin.cfg().msg("illegal-removed"));
                     continue;
@@ -297,7 +292,6 @@ public final class MaceRegistry {
                 seenIds.add(id);
 
                 if (!active.containsKey(id)) {
-                    // Adopt if there is room, otherwise remove
                     if (getActiveCount() < plugin.cfg().getAllowedMaces()) {
                         ensureRegisteredExisting(id, p, p.getLocation(), "HELD");
                     } else {
@@ -305,20 +299,17 @@ public final class MaceRegistry {
                         p.sendMessage(plugin.cfg().msg("illegal-removed"));
                     }
                 } else {
-                    // Only update if status changed or it's been a while (avoid constant updates)
                     MaceRecord record = active.get(id);
                     if (record != null && !"HELD".equals(record.status)) {
                         updateLastSeen(id, p, p.getLocation(), "HELD");
                     }
                 }
             } else {
-                // Untracked mace: if room, register + tag; else remove
                 if (getActiveCount() < plugin.cfg().getAllowedMaces()) {
                     UUID id = UUID.randomUUID();
                     tagWithId(it, id);
                     ensureRegisteredExisting(id, p, p.getLocation(), "HELD");
                 } else {
-                    // remove that untracked mace item
                     removeFirstUntrackedMace(p);
                     p.sendMessage(plugin.cfg().msg("illegal-removed"));
                 }
@@ -337,7 +328,6 @@ public final class MaceRegistry {
                 return;
             }
         }
-        // offhand
         ItemStack off = inv.getItemInOffHand();
         if (isMace(off) && getTrackedId(off).isEmpty()) {
             inv.setItemInOffHand(null);

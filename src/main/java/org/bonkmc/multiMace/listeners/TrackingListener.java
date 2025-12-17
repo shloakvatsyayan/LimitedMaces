@@ -42,7 +42,6 @@ public final class TrackingListener implements Listener {
         MaceRecord r = plugin.registry().getRecord(id);
         if (r == null) return;
         
-        // Don't broadcast destruction messages for untracked maces
         if (r.isUntracked) {
             plugin.registry().removeTracked(id, reason);
             plugin.recipes().syncWithLimit();
@@ -105,11 +104,9 @@ public final class TrackingListener implements Listener {
         ItemStack stack = e.getItem().getItemStack();
         if (!isMace(stack)) return;
 
-        // Mark this item as being picked up to prevent EntityRemoveEvent from counting it as destroyed
         UUID itemEntityId = e.getItem().getUniqueId();
         pickedUpItems.add(itemEntityId);
         
-        // Remove from set after a short delay to prevent memory leaks
         Bukkit.getScheduler().runTaskLater(plugin, () -> pickedUpItems.remove(itemEntityId), 5L);
 
         Optional<UUID> id = plugin.registry().getTrackedId(stack);
@@ -152,7 +149,6 @@ public final class TrackingListener implements Listener {
         UUID itemEntityId = e.getEntity().getUniqueId();
         naturallyDespawnedItems.add(itemEntityId);
         
-        // Remove from set after a delay to prevent memory leaks
         Bukkit.getScheduler().runTaskLater(plugin, () -> naturallyDespawnedItems.remove(itemEntityId), 5L);
 
         plugin.registry().getTrackedId(stack).ifPresent(id -> broadcastDestroyed(id, "despawn"));
@@ -190,12 +186,10 @@ public final class TrackingListener implements Listener {
         
         UUID itemEntityId = item.getUniqueId();
         
-        // Ignore if this item was just picked up (don't count pickup as destruction)
         if (pickedUpItems.contains(itemEntityId)) {
             return;
         }
         
-        // Ignore if this item naturally despawned (already handled by onDespawn)
         if (naturallyDespawnedItems.contains(itemEntityId)) {
             return;
         }
@@ -203,11 +197,9 @@ public final class TrackingListener implements Listener {
         ItemStack stack = item.getItemStack();
         if (stack == null || !isMace(stack)) return;
 
-        // This catches /kill command and other forced removals that aren't natural despawns
         Optional<UUID> idOpt = plugin.registry().getTrackedId(stack);
         if (idOpt.isPresent()) {
             UUID id = idOpt.get();
-            // Only broadcast if mace is still tracked
             MaceRecord record = plugin.registry().getRecord(id);
             if (record != null) {
                 broadcastDestroyed(id, "removed");

@@ -20,8 +20,8 @@ public final class MaceRecord {
     public double lastZ;
 
     public long lastSeenAt;
-    public String status; // HELD / DROPPED
-    public boolean isUntracked; // Bypasses mace limit
+    public String status;
+    public boolean isUntracked;
 
     public void setLocation(Location loc) {
         if (loc == null || loc.getWorld() == null) return;

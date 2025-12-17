@@ -33,7 +33,6 @@ public final class ClearUntrackedMacesCommand implements CommandExecutor {
         Collection<MaceRecord> untracked = plugin.registry().getUntrackedMaces();
         int count = untracked.size();
 
-        // Remove from all player inventories
         for (Player p : Bukkit.getOnlinePlayers()) {
             org.bukkit.inventory.PlayerInventory inv = p.getInventory();
             ItemStack[] contents = inv.getContents();
@@ -57,7 +56,6 @@ public final class ClearUntrackedMacesCommand implements CommandExecutor {
                 inv.setContents(contents);
             }
 
-            // Check offhand
             ItemStack off = inv.getItemInOffHand();
             if (off != null && off.getType() == Material.MACE) {
                 Optional<UUID> id = plugin.registry().getTrackedId(off);
@@ -70,7 +68,6 @@ public final class ClearUntrackedMacesCommand implements CommandExecutor {
             }
         }
 
-        // Remove dropped Item entities that are untracked maces
         int droppedCount = 0;
         for (World world : Bukkit.getWorlds()) {
             for (org.bukkit.entity.Entity entity : world.getEntities()) {
@@ -90,7 +87,6 @@ public final class ClearUntrackedMacesCommand implements CommandExecutor {
             }
         }
 
-        // Remove from registry
         plugin.registry().clearUntrackedMaces();
 
         sender.sendMessage(plugin.cfg().color("&aCleared &f" + count + " &auntracked mace(s) from inventories and &f" + droppedCount + " &adropped item(s)."));

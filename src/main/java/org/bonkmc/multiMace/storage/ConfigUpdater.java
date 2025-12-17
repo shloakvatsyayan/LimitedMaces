@@ -9,10 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-/**
- * Handles version-based configuration updates.
- * Supports upgrading configs from any version to any version.
- */
 public final class ConfigUpdater {
     private final JavaPlugin plugin;
     private final File configFile;
@@ -27,12 +23,7 @@ public final class ConfigUpdater {
         registerUpdates();
     }
 
-    /**
-     * Registers all config updates by version.
-     * Each update is applied if the config version is older than the update's target version.
-     */
     private void registerUpdates() {
-        // Update to version 1.1.0: Add allow-mace-enchanting option
         addUpdate("1.1.0", config -> {
             if (!config.contains("allow-mace-enchanting")) {
                 config.set("allow-mace-enchanting", true);
@@ -40,17 +31,10 @@ public final class ConfigUpdater {
         });
     }
 
-    /**
-     * Adds a config update that will be applied when upgrading to the specified version.
-     */
     private void addUpdate(String targetVersion, Consumer<YamlConfiguration> updateAction) {
         updates.add(new ConfigUpdate(targetVersion, updateAction));
     }
 
-    /**
-     * Updates the config file to the current version.
-     * Reads the current config version, applies all necessary updates, and saves the file.
-     */
     public void update() {
         if (!configFile.exists()) {
             return;
@@ -60,12 +44,11 @@ public final class ConfigUpdater {
         String configVersion = config.getString("version", "1.0");
 
         if (configVersion.equals(currentVersion)) {
-            return; // Already up to date
+            return;
         }
 
         plugin.getLogger().info("Updating config from version " + configVersion + " to " + currentVersion);
 
-        // Apply all updates for versions newer than the config version
         for (ConfigUpdate update : updates) {
             if (isVersionNewer(update.targetVersion, configVersion)) {
                 try {
@@ -77,10 +60,8 @@ public final class ConfigUpdater {
             }
         }
 
-        // Update version in config
         config.set("version", currentVersion);
 
-        // Save updated config
         try {
             config.save(configFile);
             plugin.getLogger().info("Config updated successfully to version " + currentVersion);
@@ -101,7 +82,7 @@ public final class ConfigUpdater {
             if (v1 > v2) return true;
             if (v1 < v2) return false;
         }
-        return false; // Equal versions
+        return false;
     }
 
     private int parseInt(String s) {
@@ -112,9 +93,6 @@ public final class ConfigUpdater {
         }
     }
 
-    /**
-     * Represents a single config update for a specific version.
-     */
     private static final class ConfigUpdate {
         final String targetVersion;
         final Consumer<YamlConfiguration> updateAction;

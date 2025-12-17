@@ -22,25 +22,19 @@ public final class ConfigManager {
     }
 
     public void load() {
-        // config/config.yml on disk (folder requested)
         File configDir = new File(plugin.getDataFolder(), "config");
         if (!configDir.exists()) {
-            //noinspection ResultOfMethodCallIgnored
             configDir.mkdirs();
         }
 
         this.file = new File(configDir, "config.yml");
 
         if (!file.exists()) {
-            // Support either embedded resource path:
-            // - src/main/resources/config.yml  (what you currently have)
-            // - src/main/resources/config/config.yml (also supported if you add it later)
             boolean copied =
                     copyEmbeddedToFile("config/config.yml", file) ||
                             copyEmbeddedToFile("config.yml", file);
 
             if (!copied) {
-                // Last-resort: create a minimal default config if no embedded file exists
                 YamlConfiguration def = new YamlConfiguration();
                 def.set("version", CONFIG_VERSION);
                 def.set("allowed-maces", 3);
@@ -61,11 +55,9 @@ public final class ConfigManager {
 
         this.yaml = YamlConfiguration.loadConfiguration(file);
 
-        // Update config to current version if needed
         ConfigUpdater updater = new ConfigUpdater(plugin, file, CONFIG_VERSION);
         updater.update();
 
-        // Reload config after update
         this.yaml = YamlConfiguration.loadConfiguration(file);
     }
 

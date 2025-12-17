@@ -2,7 +2,7 @@ package org.bonkmc.multiMace.recipes;
 
 import org.bonkmc.multiMace.MultiMace;
 import org.bukkit.Bukkit;
-import org.bukkit.Keyed;              // ✅ ADDED
+import org.bukkit.Keyed;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.*;
@@ -49,7 +49,6 @@ public final class RecipeController {
             if (r == null) continue;
             ItemStack result = r.getResult();
             if (result != null && result.getType() == Material.MACE) {
-                // ✅ Java 8 compatible
                 if (r instanceof Keyed) {
                     keysToRemove.add(((Keyed) r).getKey());
                 }

@@ -52,7 +52,6 @@ public final class CraftingListener implements Listener {
             return;
         }
 
-        // SHIFT-click crafting: handle manually so every mace is tracked/tagged
         if (e.isShiftClick()) {
             e.setCancelled(true);
 
@@ -82,7 +81,6 @@ public final class CraftingListener implements Listener {
                 }
             }
 
-            // ✅ PUBLIC broadcast
             Bukkit.broadcastMessage(plugin.cfg().msg("crafted-broadcast")
                     .replace("%player%", p.getName())
                     .replace("%amount%", String.valueOf(toMake))
@@ -94,11 +92,9 @@ public final class CraftingListener implements Listener {
             return;
         }
 
-        // Normal click craft: replace result with tagged+tracked mace
         ItemStack tagged = plugin.registry().createAndRegisterNewMace(p, p.getLocation());
         e.setCurrentItem(tagged);
 
-        // ✅ PUBLIC broadcast
         Bukkit.broadcastMessage(plugin.cfg().msg("crafted-broadcast")
                 .replace("%player%", p.getName())
                 .replace("%amount%", "1")
@@ -113,7 +109,6 @@ public final class CraftingListener implements Listener {
         ItemStack res = e.getResult();
         if (res == null || res.getType() != Material.MACE) return;
 
-        // Auto-crafters/crafters may NEVER craft the mace
         e.setCancelled(true);
         e.setResult(new ItemStack(Material.AIR));
     }

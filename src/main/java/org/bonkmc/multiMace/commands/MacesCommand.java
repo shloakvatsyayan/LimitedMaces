@@ -5,16 +5,10 @@ import org.bonkmc.multiMace.storage.MaceRecord;
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public final class MacesCommand implements CommandExecutor, TabCompleter {
     private final MultiMace plugin;
-
-    private static final DateTimeFormatter FMT =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
 
     public MacesCommand(MultiMace plugin) {
         this.plugin = plugin;
@@ -29,7 +23,7 @@ public final class MacesCommand implements CommandExecutor, TabCompleter {
             }
 
             plugin.cfg().reload();
-            plugin.registry().load(); // reload tracked file too, keeps it consistent
+            plugin.registry().load();
             plugin.recipes().syncWithLimit();
 
             sender.sendMessage(plugin.cfg().msg("reload"));
@@ -53,18 +47,12 @@ public final class MacesCommand implements CommandExecutor, TabCompleter {
         int i = 1;
         for (MaceRecord r : list) {
             String holder = (r.lastHolderName != null && !r.lastHolderName.isBlank()) ? r.lastHolderName : "Unknown";
-            String when = r.lastSeenAt > 0 ? FMT.format(Instant.ofEpochMilli(r.lastSeenAt)) : "unknown";
-            String loc = (r.lastWorld == null || r.lastWorld.isBlank())
-                    ? "unknown"
-                    : (r.lastWorld + " " + (int) r.lastX + " " + (int) r.lastY + " " + (int) r.lastZ);
 
             String shortId = r.id.toString().split("-")[0];
 
             sender.sendMessage(plugin.cfg().color("&6#" + (i++) + " &e" + shortId +
                     " &7status=&f" + r.status +
-                    " &7lastHolder=&f" + holder //+
-                    //" &7lastSeen=&f" + when +
-                    //" &7at=&f" + loc
+                    " &7lastHolder=&f" + holder
                     )
             );
         }
