@@ -12,6 +12,7 @@ import java.nio.file.StandardCopyOption;
 
 public final class ConfigManager {
     private final JavaPlugin plugin;
+    private static final String CONFIG_VERSION = "1.1.1";
 
     private File file;
     private YamlConfiguration yaml;
@@ -41,7 +42,9 @@ public final class ConfigManager {
             if (!copied) {
                 // Last-resort: create a minimal default config if no embedded file exists
                 YamlConfiguration def = new YamlConfiguration();
+                def.set("version", CONFIG_VERSION);
                 def.set("allowed-maces", 3);
+                def.set("allow-mace-enchanting", true);
                 def.set("messages.prefix", "&6[MultiMace]&r ");
                 def.set("messages.crafted", "&aMace crafted! &7(%current%/%max%)");
                 def.set("messages.limit-reached", "&cMace limit reached. A mace must be destroyed before another can be crafted.");
@@ -56,6 +59,13 @@ public final class ConfigManager {
             }
         }
 
+        this.yaml = YamlConfiguration.loadConfiguration(file);
+
+        // Update config to current version if needed
+        ConfigUpdater updater = new ConfigUpdater(plugin, file, CONFIG_VERSION);
+        updater.update();
+
+        // Reload config after update
         this.yaml = YamlConfiguration.loadConfiguration(file);
     }
 
@@ -76,6 +86,10 @@ public final class ConfigManager {
 
     public int getAllowedMaces() {
         return Math.max(0, yaml.getInt("allowed-maces", 3));
+    }
+
+    public boolean isAllowMaceEnchanting() {
+        return yaml.getBoolean("allow-mace-enchanting", true);
     }
 
     public String msg(String key) {

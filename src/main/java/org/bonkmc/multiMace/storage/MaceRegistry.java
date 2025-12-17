@@ -49,6 +49,12 @@ public final class MaceRegistry {
     }
 
     public int getActiveCount() {
+        return (int) active.values().stream()
+                .filter(r -> !r.isUntracked)
+                .count();
+    }
+
+    public int getTotalCount() {
         return active.size();
     }
 
@@ -113,6 +119,7 @@ public final class MaceRegistry {
 
                 r.lastSeenAt = sec.getLong("lastSeenAt", 0L);
                 r.status = sec.getString("status", "UNKNOWN");
+                r.isUntracked = sec.getBoolean("isUntracked", false);
 
                 active.put(id, r);
             } catch (Exception ignored) {
@@ -151,6 +158,7 @@ public final class MaceRegistry {
 
             sec.set("lastSeenAt", r.lastSeenAt);
             sec.set("status", r.status);
+            sec.set("isUntracked", r.isUntracked);
         }
 
         try {
@@ -165,6 +173,10 @@ public final class MaceRegistry {
     }
 
     public ItemStack createAndRegisterNewMace(Player owner, Location where) {
+        return createAndRegisterNewMace(owner, where, false);
+    }
+
+    public ItemStack createAndRegisterNewMace(Player owner, Location where, boolean untracked) {
         UUID id = UUID.randomUUID();
         ItemStack mace = new ItemStack(Material.MACE, 1);
         tagWithId(mace, id);
@@ -180,6 +192,7 @@ public final class MaceRegistry {
         r.lastHolderName = owner.getName();
         r.lastSeenAt = Instant.now().toEpochMilli();
         r.status = "HELD";
+        r.isUntracked = untracked;
         r.setLocation(where);
 
         active.put(id, r);
@@ -245,6 +258,13 @@ public final class MaceRegistry {
         if (mace == null || mace.getType() != Material.MACE) return;
         ItemMeta meta = mace.getItemMeta();
         if (meta == null) return;
+        
+        // Check if item already has this tag to avoid unnecessary metadata updates
+        String existing = meta.getPersistentDataContainer().get(maceIdKey, PersistentDataType.STRING);
+        if (existing != null && existing.equals(id.toString())) {
+            return; // Already tagged with this ID, no need to modify
+        }
+        
         meta.getPersistentDataContainer().set(maceIdKey, PersistentDataType.STRING, id.toString());
         mace.setItemMeta(meta);
     }
@@ -285,7 +305,11 @@ public final class MaceRegistry {
                         p.sendMessage(plugin.cfg().msg("illegal-removed"));
                     }
                 } else {
-                    updateLastSeen(id, p, p.getLocation(), "HELD");
+                    // Only update if status changed or it's been a while (avoid constant updates)
+                    MaceRecord record = active.get(id);
+                    if (record != null && !"HELD".equals(record.status)) {
+                        updateLastSeen(id, p, p.getLocation(), "HELD");
+                    }
                 }
             } else {
                 // Untracked mace: if room, register + tag; else remove
@@ -349,5 +373,26 @@ public final class MaceRegistry {
         OfflinePlayer op = Bukkit.getOfflinePlayer(holder);
         String name = op.getName();
         return name != null ? name : holder.toString();
+    }
+
+    public Collection<MaceRecord> getUntrackedMaces() {
+        return active.values().stream()
+                .filter(r -> r.isUntracked)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    public void clearUntrackedMaces() {
+        List<UUID> toRemove = active.values().stream()
+                .filter(r -> r.isUntracked)
+                .map(r -> r.id)
+                .collect(java.util.stream.Collectors.toList());
+        
+        for (UUID id : toRemove) {
+            active.remove(id);
+        }
+        
+        if (!toRemove.isEmpty()) {
+            save();
+        }
     }
 }

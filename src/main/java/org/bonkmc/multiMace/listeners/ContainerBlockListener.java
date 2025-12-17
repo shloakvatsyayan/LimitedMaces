@@ -2,13 +2,16 @@ package org.bonkmc.multiMace.listeners;
 
 import org.bonkmc.multiMace.MultiMace;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.*;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryView; // ✅ FIX: missing import
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
@@ -29,11 +32,79 @@ public final class ContainerBlockListener implements Listener {
     }
 
     /**
-     * Treat ANY open top inventory as a blocked "container target" for maces.
-     * This includes CHEST/BARREL/HOPPER/SHULKER, and also ANVIL + ENCHANTING, etc.
+     * Checks if the top inventory should be blocked for maces.
+     * Anvils and enchantment tables are exempted if allow-mace-enchanting is enabled.
      */
     private boolean shouldBlockTop(InventoryView view) {
-        return view != null && view.getTopInventory() != null && view.getTopInventory().getSize() > 0;
+        if (view == null || view.getTopInventory() == null) {
+            return false;
+        }
+
+        Inventory top = view.getTopInventory();
+        if (top.getSize() == 0) {
+            return false;
+        }
+
+        // Exempt anvils and enchantment tables if allow-mace-enchanting is enabled
+        if (plugin.cfg().isAllowMaceEnchanting()) {
+            if (isAnvilOrEnchantmentTable(top)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Checks if the inventory belongs to an anvil or enchantment table block.
+     * Uses multiple detection methods for reliability.
+     */
+    private boolean isAnvilOrEnchantmentTable(Inventory inventory) {
+        if (inventory == null) return false;
+        
+        // Method 1: Check holder as BlockState
+        InventoryHolder holder = inventory.getHolder();
+        if (holder instanceof BlockState blockState) {
+            Material blockType = blockState.getType();
+            if (blockType == Material.ANVIL || 
+                blockType == Material.CHIPPED_ANVIL || 
+                blockType == Material.DAMAGED_ANVIL ||
+                blockType == Material.ENCHANTING_TABLE) {
+                return true;
+            }
+        }
+        
+        // Method 2: Check inventory type name using reflection-safe string comparison
+        try {
+            String typeName = inventory.getType().name();
+            if (typeName.equals("ANVIL") || typeName.equals("ENCHANTING")) {
+                return true;
+            }
+        } catch (Exception ignored) {
+            // If getType() is not available, continue to next method
+        }
+        
+        // Method 3: Check holder as Block
+        if (holder instanceof Block block) {
+            Material blockType = block.getType();
+            if (blockType == Material.ANVIL || 
+                blockType == Material.CHIPPED_ANVIL || 
+                blockType == Material.DAMAGED_ANVIL ||
+                blockType == Material.ENCHANTING_TABLE) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Checks if the inventory view is for an anvil or enchantment table.
+     */
+    private boolean isAnvilOrEnchantmentTable(InventoryView view) {
+        if (view == null) return false;
+        Inventory top = view.getTopInventory();
+        return top != null && isAnvilOrEnchantmentTable(top);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -41,6 +112,12 @@ public final class ContainerBlockListener implements Listener {
         if (!(e.getWhoClicked() instanceof Player p)) return;
 
         InventoryView view = e.getView();
+        
+        // Early exemption check for anvils and enchantment tables
+        if (plugin.cfg().isAllowMaceEnchanting() && isAnvilOrEnchantmentTable(view)) {
+            return; // Allow maces in anvils/enchantment tables
+        }
+        
         if (!shouldBlockTop(view)) return;
 
         boolean inTop = isTopSlot(view, e.getRawSlot());
@@ -97,6 +174,12 @@ public final class ContainerBlockListener implements Listener {
         if (!(e.getWhoClicked() instanceof Player p)) return;
 
         InventoryView view = e.getView();
+        
+        // Early exemption check for anvils and enchantment tables
+        if (plugin.cfg().isAllowMaceEnchanting() && isAnvilOrEnchantmentTable(view)) {
+            return; // Allow maces in anvils/enchantment tables
+        }
+        
         if (!shouldBlockTop(view)) return;
 
         if (!isMace(e.getOldCursor())) return;
@@ -116,6 +199,26 @@ public final class ContainerBlockListener implements Listener {
         if (!(e.getWhoClicked() instanceof Player p)) return;
 
         InventoryView view = e.getView();
+        
+        ItemStack cursor = e.getCursor();
+        
+        // Prevent mace from being taken out of creative menu (into player inventory)
+        // Only block untracked maces (those from creative menu item list)
+        // Tracked maces (crafted) should still be allowed to be moved
+        if (isMace(cursor) && !isTopSlot(view, e.getRawSlot())) {
+            // Check if mace is untracked (came from creative menu)
+            if (!plugin.registry().isTrackedMace(cursor)) {
+                e.setCancelled(true);
+                p.sendMessage(plugin.cfg().msg("containers-blocked"));
+                return;
+            }
+        }
+        
+        // Early exemption check for anvils and enchantment tables
+        if (plugin.cfg().isAllowMaceEnchanting() && isAnvilOrEnchantmentTable(view)) {
+            return; // Allow maces in anvils/enchantment tables
+        }
+        
         if (!shouldBlockTop(view)) return;
 
         if (isTopSlot(view, e.getRawSlot()) && isMace(e.getCursor())) {
@@ -137,12 +240,20 @@ public final class ContainerBlockListener implements Listener {
     }
 
     // If a mace somehow exists in a container/anvil/enchant/etc, strip it out when opened
+    // Anvils and enchantment tables are exempted if allow-mace-enchanting is enabled
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onOpen(InventoryOpenEvent e) {
         if (!(e.getPlayer() instanceof Player p)) return;
 
         Inventory top = e.getView().getTopInventory();
         if (top == null) return;
+
+        // Exempt anvils and enchantment tables if allow-mace-enchanting is enabled
+        if (plugin.cfg().isAllowMaceEnchanting()) {
+            if (isAnvilOrEnchantmentTable(top)) {
+                return;
+            }
+        }
 
         boolean found = false;
         ItemStack[] contents = top.getContents();
@@ -163,7 +274,8 @@ public final class ContainerBlockListener implements Listener {
         if (found) {
             top.setContents(contents);
             p.sendMessage(plugin.cfg().msg("containers-blocked"));
-            plugin.registry().scanAndNormalizePlayerInventory(p);
+            // Don't scan inventory here - it's unnecessary and can trigger advancement re-checks
+            // The maces were already moved to player inventory, they'll be tracked on next pickup/scan
             plugin.recipes().syncWithLimit();
         }
     }

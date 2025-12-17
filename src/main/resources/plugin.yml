@@ -1,5 +1,5 @@
 name: MultiMace
-version: '1.0'
+version: '1.1.1'
 main: org.bonkmc.multiMace.MultiMace
 api-version: '1.21'
 authors: [ Pyro ]
@@ -10,9 +10,21 @@ commands:
     description: View tracked maces or reload config
     usage: /maces [reload]
     permission: multimace.use
+  getuntrackedmace:
+    description: Get an untracked mace that bypasses the mace limit
+    usage: /getuntrackedmace
+    permission: multimace.getuntracked
+  clearuntrackedmaces:
+    description: Clear all untracked maces
+    usage: /clearuntrackedmaces
+    permission: multimace.clearuntracked
 
 permissions:
   multimace.use:
     default: true
   multimace.reload:
+    default: op
+  multimace.getuntracked:
+    default: op
+  multimace.clearuntracked:
     default: op

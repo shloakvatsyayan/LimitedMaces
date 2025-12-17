@@ -1,5 +1,7 @@
 package org.bonkmc.multiMace;
 
+import org.bonkmc.multiMace.commands.ClearUntrackedMacesCommand;
+import org.bonkmc.multiMace.commands.GetUntrackedMaceCommand;
 import org.bonkmc.multiMace.commands.MacesCommand;
 import org.bonkmc.multiMace.listeners.ContainerBlockListener;
 import org.bonkmc.multiMace.listeners.CraftingListener;
@@ -32,11 +34,21 @@ public final class MultiMace extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new ContainerBlockListener(this), this);
         Bukkit.getPluginManager().registerEvents(new TrackingListener(this), this);
 
-        // Command
+        // Commands
         MacesCommand cmd = new MacesCommand(this);
         if (getCommand("maces") != null) {
             getCommand("maces").setExecutor(cmd);
             getCommand("maces").setTabCompleter(cmd);
+        }
+
+        GetUntrackedMaceCommand getUntrackedCmd = new GetUntrackedMaceCommand(this);
+        if (getCommand("getuntrackedmace") != null) {
+            getCommand("getuntrackedmace").setExecutor(getUntrackedCmd);
+        }
+
+        ClearUntrackedMacesCommand clearUntrackedCmd = new ClearUntrackedMacesCommand(this);
+        if (getCommand("clearuntrackedmaces") != null) {
+            getCommand("clearuntrackedmaces").setExecutor(clearUntrackedCmd);
         }
 
         // Re-scan online players (useful on /reload or plugin reloads)

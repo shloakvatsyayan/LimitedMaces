@@ -12,6 +12,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityRemoveEvent;
 import org.bukkit.event.entity.ItemDespawnEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
@@ -19,11 +20,15 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public final class TrackingListener implements Listener {
     private final MultiMace plugin;
+    private final Set<UUID> pickedUpItems = new HashSet<>();
+    private final Set<UUID> naturallyDespawnedItems = new HashSet<>();
 
     public TrackingListener(MultiMace plugin) {
         this.plugin = plugin;
@@ -35,7 +40,16 @@ public final class TrackingListener implements Listener {
 
     private void broadcastDestroyed(UUID id, String reason) {
         MaceRecord r = plugin.registry().getRecord(id);
-        String lastHolder = (r != null && r.lastHolderName != null && !r.lastHolderName.isBlank())
+        if (r == null) return;
+        
+        // Don't broadcast destruction messages for untracked maces
+        if (r.isUntracked) {
+            plugin.registry().removeTracked(id, reason);
+            plugin.recipes().syncWithLimit();
+            return;
+        }
+        
+        String lastHolder = (r.lastHolderName != null && !r.lastHolderName.isBlank())
                 ? r.lastHolderName
                 : "Unknown";
 
@@ -91,6 +105,13 @@ public final class TrackingListener implements Listener {
         ItemStack stack = e.getItem().getItemStack();
         if (!isMace(stack)) return;
 
+        // Mark this item as being picked up to prevent EntityRemoveEvent from counting it as destroyed
+        UUID itemEntityId = e.getItem().getUniqueId();
+        pickedUpItems.add(itemEntityId);
+        
+        // Remove from set after a short delay to prevent memory leaks
+        Bukkit.getScheduler().runTaskLater(plugin, () -> pickedUpItems.remove(itemEntityId), 5L);
+
         Optional<UUID> id = plugin.registry().getTrackedId(stack);
         if (id.isPresent()) {
             UUID mid = id.get();
@@ -128,6 +149,12 @@ public final class TrackingListener implements Listener {
         ItemStack stack = e.getEntity().getItemStack();
         if (!isMace(stack)) return;
 
+        UUID itemEntityId = e.getEntity().getUniqueId();
+        naturallyDespawnedItems.add(itemEntityId);
+        
+        // Remove from set after a delay to prevent memory leaks
+        Bukkit.getScheduler().runTaskLater(plugin, () -> naturallyDespawnedItems.remove(itemEntityId), 5L);
+
         plugin.registry().getTrackedId(stack).ifPresent(id -> broadcastDestroyed(id, "despawn"));
     }
 
@@ -155,5 +182,36 @@ public final class TrackingListener implements Listener {
                 plugin.registry().getTrackedId(stack).ifPresent(id -> broadcastDestroyed(id, "damage:" + e.getCause().name()));
             }
         }, 1L);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onRemove(EntityRemoveEvent e) {
+        if (!(e.getEntity() instanceof Item item)) return;
+        
+        UUID itemEntityId = item.getUniqueId();
+        
+        // Ignore if this item was just picked up (don't count pickup as destruction)
+        if (pickedUpItems.contains(itemEntityId)) {
+            return;
+        }
+        
+        // Ignore if this item naturally despawned (already handled by onDespawn)
+        if (naturallyDespawnedItems.contains(itemEntityId)) {
+            return;
+        }
+        
+        ItemStack stack = item.getItemStack();
+        if (stack == null || !isMace(stack)) return;
+
+        // This catches /kill command and other forced removals that aren't natural despawns
+        Optional<UUID> idOpt = plugin.registry().getTrackedId(stack);
+        if (idOpt.isPresent()) {
+            UUID id = idOpt.get();
+            // Only broadcast if mace is still tracked
+            MaceRecord record = plugin.registry().getRecord(id);
+            if (record != null) {
+                broadcastDestroyed(id, "removed");
+            }
+        }
     }
 }
