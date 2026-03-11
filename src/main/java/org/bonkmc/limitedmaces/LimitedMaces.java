@@ -1,19 +1,21 @@
-package org.bonkmc.multiMace;
+package org.bonkmc.limitedmaces;
 
-import org.bonkmc.multiMace.commands.ClearUntrackedMacesCommand;
-import org.bonkmc.multiMace.commands.GetUntrackedMaceCommand;
-import org.bonkmc.multiMace.commands.MacesCommand;
-import org.bonkmc.multiMace.listeners.ContainerBlockListener;
-import org.bonkmc.multiMace.listeners.CraftingListener;
-import org.bonkmc.multiMace.listeners.TrackingListener;
-import org.bonkmc.multiMace.recipes.RecipeController;
-import org.bonkmc.multiMace.storage.ConfigManager;
-import org.bonkmc.multiMace.storage.MaceRegistry;
+import org.bonkmc.limitedmaces.commands.ClearUntrackedMacesCommand;
+import org.bonkmc.limitedmaces.commands.GetUntrackedMaceCommand;
+import org.bonkmc.limitedmaces.commands.MacesCommand;
+import org.bonkmc.limitedmaces.commands.RemoveMaceCommand;
+import org.bonkmc.limitedmaces.listeners.ContainerBlockListener;
+import org.bonkmc.limitedmaces.listeners.CraftingListener;
+import org.bonkmc.limitedmaces.listeners.TrackingListener;
+import org.bonkmc.limitedmaces.recipes.RecipeController;
+import org.bonkmc.limitedmaces.storage.ConfigManager;
+import org.bonkmc.limitedmaces.storage.ConfigMigrator;
+import org.bonkmc.limitedmaces.storage.MaceRegistry;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public final class MultiMace extends JavaPlugin {
+public final class LimitedMaces extends JavaPlugin {
 
     private ConfigManager configManager;
     private MaceRegistry maceRegistry;
@@ -21,6 +23,9 @@ public final class MultiMace extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        ConfigMigrator migrator = new ConfigMigrator(this);
+        migrator.migrateIfNeeded();
+
         this.configManager = new ConfigManager(this);
         this.configManager.load();
 
@@ -49,13 +54,19 @@ public final class MultiMace extends JavaPlugin {
             getCommand("clearuntrackedmaces").setExecutor(clearUntrackedCmd);
         }
 
+        RemoveMaceCommand removeMaceCmd = new RemoveMaceCommand(this);
+        if (getCommand("removemace") != null) {
+            getCommand("removemace").setExecutor(removeMaceCmd);
+            getCommand("removemace").setTabCompleter(removeMaceCmd);
+        }
+
         for (Player p : Bukkit.getOnlinePlayers()) {
             maceRegistry.scanAndNormalizePlayerInventory(p);
         }
 
         recipeController.syncWithLimit();
 
-        getLogger().info("MultiMace enabled. Tracked maces: " + maceRegistry.getActiveCount() +
+        getLogger().info("LimitedMaces enabled. Tracked maces: " + maceRegistry.getActiveCount() +
                 " / " + configManager.getAllowedMaces());
     }
 
@@ -64,7 +75,7 @@ public final class MultiMace extends JavaPlugin {
         try {
             maceRegistry.save();
         } catch (Exception ignored) {}
-        getLogger().info("MultiMace disabled.");
+        getLogger().info("LimitedMaces disabled.");
     }
 
     public ConfigManager cfg() {

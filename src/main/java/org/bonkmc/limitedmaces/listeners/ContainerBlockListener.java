@@ -1,6 +1,6 @@
-package org.bonkmc.multiMace.listeners;
+package org.bonkmc.limitedmaces.listeners;
 
-import org.bonkmc.multiMace.MultiMace;
+import org.bonkmc.limitedmaces.LimitedMaces;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
@@ -17,9 +17,9 @@ import org.bukkit.inventory.ItemStack;
 import java.util.HashMap;
 
 public final class ContainerBlockListener implements Listener {
-    private final MultiMace plugin;
+    private final LimitedMaces plugin;
 
-    public ContainerBlockListener(MultiMace plugin) {
+    public ContainerBlockListener(LimitedMaces plugin) {
         this.plugin = plugin;
     }
 

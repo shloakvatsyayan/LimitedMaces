@@ -1,6 +1,6 @@
-package org.bonkmc.multiMace.recipes;
+package org.bonkmc.limitedmaces.recipes;
 
-import org.bonkmc.multiMace.MultiMace;
+import org.bonkmc.limitedmaces.LimitedMaces;
 import org.bukkit.Bukkit;
 import org.bukkit.Keyed;
 import org.bukkit.Material;
@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class RecipeController {
-    private final MultiMace plugin;
+    private final LimitedMaces plugin;
 
     private final NamespacedKey c1_3;
     private final NamespacedKey c2_3;
@@ -20,7 +20,7 @@ public final class RecipeController {
     private final NamespacedKey c1_2;
     private final NamespacedKey c2_2;
 
-    public RecipeController(MultiMace plugin) {
+    public RecipeController(LimitedMaces plugin) {
         this.plugin = plugin;
 
         c1_3 = new NamespacedKey(plugin, "mace_c1_3x3");

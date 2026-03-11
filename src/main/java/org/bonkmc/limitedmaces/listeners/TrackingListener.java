@@ -1,7 +1,7 @@
-package org.bonkmc.multiMace.listeners;
+package org.bonkmc.limitedmaces.listeners;
 
-import org.bonkmc.multiMace.MultiMace;
-import org.bonkmc.multiMace.storage.MaceRecord;
+import org.bonkmc.limitedmaces.LimitedMaces;
+import org.bonkmc.limitedmaces.storage.MaceRecord;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
@@ -26,11 +26,11 @@ import java.util.Set;
 import java.util.UUID;
 
 public final class TrackingListener implements Listener {
-    private final MultiMace plugin;
+    private final LimitedMaces plugin;
     private final Set<UUID> pickedUpItems = new HashSet<>();
     private final Set<UUID> naturallyDespawnedItems = new HashSet<>();
 
-    public TrackingListener(MultiMace plugin) {
+    public TrackingListener(LimitedMaces plugin) {
         this.plugin = plugin;
     }
 

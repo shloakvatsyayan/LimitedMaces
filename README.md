@@ -6,52 +6,64 @@
 
 ---
 
-## ✨ Features
+## Features
 
-- 🔢 **Global Mace Limit**  
+- **Global Mace Limit**  
   Set a hard cap on how many maces may exist across the entire server.
 
-- 🧠 **Offline Player Tracking**  
-  Maces are tracked even while players are offline — no loopholes.
-
-- 🚫 **Container Restrictions**  
+- **Container Restrictions**  
   Maces **cannot** be placed into:
   - Chests
   - Barrels
   - Shulker Boxes
   - Any other container
+  
+  Hoppers **cannot** pick up maces.
 
-- ⚙️ **Crafting Control**
+- **Crafting Control**
   - The mace crafting recipe is **disabled automatically** once the limit is reached
   - **Autocrafters cannot craft maces**
-  - Players receive a clear message when the limit is reached
+  - Global messages are sent out about mace status changes (discord webhook feature coming soon!!!)
 
-- 🧲 **Hopper Protection**
-  - Hoppers cannot pick up maces
-
-- 💥 **Destruction Handling**
+- **Destruction Handling**
   - When a mace is destroyed:
     - A **server-wide broadcast** is sent
     - A new mace can be crafted again (until the limit is reached)
 
-- 🧹 **Illegal Mace Cleanup**
+- **Illegal Mace Cleanup**
   - Untracked or duplicated maces are automatically removed
 
-- ✨ **Optional Enchanting**
+- **Optional Enchanting**
   - Control whether maces can be enchanted
   - When `allow-mace-enchanting` is **true**, maces can be placed into **Enchanting Tables** and **Anvils**
   - When **false**, maces cannot be placed into enchant tables or anvils, making them completely unenchantable
 
 ---
 
-## 📁 Configuration
+## Commands
 
-The configuration file is located at: plugins/LimitedMaces/config.yml
+| Command | Permission | Description |
+|---------|------------|-------------|
+| `/maces` | `limitedmaces.use` | View tracked maces |
+| `/maces reload` | `limitedmaces.reload` | Reload the config |
+| `/maces setlimit <n>` | `limitedmaces.setlimit` | Set the mace limit |
+| `/maces enchanting <on\|off>` | `limitedmaces.enchanting` | Enable/disable mace enchanting |
+| `/getuntrackedmace` | `limitedmaces.getuntracked` | Get an untracked mace (bypasses limit) |
+| `/clearuntrackedmaces` | `limitedmaces.clearuntracked` | Clear all untracked maces |
+| `/removemace <id>` | `limitedmaces.remove` | Remove a mace from the plugin and world |
 
-### 📝 Default / Example `config.yml`
+---
+
+## Configuration
+
+Configuration file is located at: `plugins/LimitedMaces/config.yml`
+
+Data file is located at: `plugins/LimitedMaces/maces.yml`. **_DO NOT TOUCH THIS UNLESS YOU KNOW WHAT YOU ARE DOING._**
+
+### Default / Example `config.yml`
 
 ```yml
-version: 1.1.0
+version: 1.1.4
 
 # Maximum number of maces allowed on the server
 allowed-maces: 3
@@ -61,18 +73,33 @@ allowed-maces: 3
 allow-mace-enchanting: true
 
 messages:
-  prefix: "&6[MultiMace]&r "
+  prefix: "&6[LimitedMaces]&r "
   crafted-broadcast: "&a%player% &7crafted &f%amount%&7 mace(s)! &7(%current%/%max%)"
   destroyed-broadcast: "&cA mace was destroyed! &7(last held by &f%lastHolder%&7) &7(%current%/%max%)"
   containers-blocked: "&cYou can't put the mace in any container."
   limit-reached: "&cMace limit reached. A mace must be destroyed before another can be crafted."
   illegal-removed: "&cAn illegal/untracked mace was removed."
-  reload: "&aMultiMace config reloaded."
+  reload: "&aLimitedMaces config reloaded."
   no-permission: "&cYou don't have permission."
-````
+```
 
-## 📦 Compatibility
+---
 
-* ✅ **Minecraft 1.21.x**
-* 🚀 Designed to be lightweight and efficient
-* 🧩 No dependencies required
+## Migration from MultiMace
+
+If you're upgrading from an older version (1.1.3 or earlier) that used the "MultiMace" name:
+
+1. The plugin will automatically detect the old `plugins/MultiMace/` folder
+2. Config and data will be migrated to the new `plugins/LimitedMaces/` folder
+3. The old folder will be deleted after successful migration
+4. Prefix "MultiMace" will be updated to "LimitedMaces". If you set a custom prefix, this may override that.
+
+If this is not automatically done or you face issues with this process, feel free to join our Discord and open a ticket. Link is in the sidebar. 
+
+---
+
+## Compatibility
+
+* **Minecraft 1.21.x**
+* Designed to be lightweight and efficient
+* No dependencies required

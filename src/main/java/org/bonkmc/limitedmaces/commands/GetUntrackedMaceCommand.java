@@ -1,15 +1,15 @@
-package org.bonkmc.multiMace.commands;
+package org.bonkmc.limitedmaces.commands;
 
-import org.bonkmc.multiMace.MultiMace;
+import org.bonkmc.limitedmaces.LimitedMaces;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 public final class GetUntrackedMaceCommand implements CommandExecutor {
-    private final MultiMace plugin;
+    private final LimitedMaces plugin;
 
-    public GetUntrackedMaceCommand(MultiMace plugin) {
+    public GetUntrackedMaceCommand(LimitedMaces plugin) {
         this.plugin = plugin;
     }
 
@@ -20,7 +20,7 @@ public final class GetUntrackedMaceCommand implements CommandExecutor {
             return true;
         }
 
-        if (!sender.hasPermission("multimace.getuntracked")) {
+        if (!sender.hasPermission("limitedmaces.getuntracked")) {
             sender.sendMessage(plugin.cfg().msg("no-permission"));
             return true;
         }
@@ -35,4 +35,3 @@ public final class GetUntrackedMaceCommand implements CommandExecutor {
         return true;
     }
 }
-

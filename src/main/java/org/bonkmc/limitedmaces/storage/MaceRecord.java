@@ -1,4 +1,4 @@
-package org.bonkmc.multiMace.storage;
+package org.bonkmc.limitedmaces.storage;
 
 import org.bukkit.Location;
 

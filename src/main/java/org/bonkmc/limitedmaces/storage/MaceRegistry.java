@@ -1,6 +1,6 @@
-package org.bonkmc.multiMace.storage;
+package org.bonkmc.limitedmaces.storage;
 
-import org.bonkmc.multiMace.MultiMace;
+import org.bonkmc.limitedmaces.LimitedMaces;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -20,7 +20,7 @@ import java.time.Instant;
 import java.util.*;
 
 public final class MaceRegistry {
-    private final MultiMace plugin;
+    private final LimitedMaces plugin;
 
     private final NamespacedKey maceIdKey;
     private final Map<UUID, MaceRecord> active = new HashMap<>();
@@ -28,15 +28,14 @@ public final class MaceRegistry {
     private final File dataFile;
     private YamlConfiguration dataYaml;
 
-    public MaceRegistry(MultiMace plugin) {
+    public MaceRegistry(LimitedMaces plugin) {
         this.plugin = plugin;
         this.maceIdKey = new NamespacedKey(plugin, "mace-id");
 
-        File dataDir = new File(plugin.getDataFolder(), "data");
-        if (!dataDir.exists()) {
-            dataDir.mkdirs();
+        if (!plugin.getDataFolder().exists()) {
+            plugin.getDataFolder().mkdirs();
         }
-        this.dataFile = new File(dataDir, "maces.yml");
+        this.dataFile = new File(plugin.getDataFolder(), "maces.yml");
     }
 
     public NamespacedKey getMaceIdKey() {
@@ -85,7 +84,7 @@ public final class MaceRegistry {
     public void load() {
         if (!dataFile.exists()) {
             this.dataYaml = new YamlConfiguration();
-            save(); // create file
+            save();
             return;
         }
 

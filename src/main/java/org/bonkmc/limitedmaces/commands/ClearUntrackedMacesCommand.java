@@ -1,7 +1,7 @@
-package org.bonkmc.multiMace.commands;
+package org.bonkmc.limitedmaces.commands;
 
-import org.bonkmc.multiMace.MultiMace;
-import org.bonkmc.multiMace.storage.MaceRecord;
+import org.bonkmc.limitedmaces.LimitedMaces;
+import org.bonkmc.limitedmaces.storage.MaceRecord;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -17,15 +17,15 @@ import java.util.Optional;
 import java.util.UUID;
 
 public final class ClearUntrackedMacesCommand implements CommandExecutor {
-    private final MultiMace plugin;
+    private final LimitedMaces plugin;
 
-    public ClearUntrackedMacesCommand(MultiMace plugin) {
+    public ClearUntrackedMacesCommand(LimitedMaces plugin) {
         this.plugin = plugin;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!sender.hasPermission("multimace.clearuntracked")) {
+        if (!sender.hasPermission("limitedmaces.clearuntracked")) {
             sender.sendMessage(plugin.cfg().msg("no-permission"));
             return true;
         }
@@ -93,4 +93,3 @@ public final class ClearUntrackedMacesCommand implements CommandExecutor {
         return true;
     }
 }
-

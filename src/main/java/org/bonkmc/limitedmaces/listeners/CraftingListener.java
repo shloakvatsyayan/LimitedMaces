@@ -1,6 +1,6 @@
-package org.bonkmc.multiMace.listeners;
+package org.bonkmc.limitedmaces.listeners;
 
-import org.bonkmc.multiMace.MultiMace;
+import org.bonkmc.limitedmaces.LimitedMaces;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -16,9 +16,9 @@ import org.bukkit.inventory.ItemStack;
 import java.util.HashMap;
 
 public final class CraftingListener implements Listener {
-    private final MultiMace plugin;
+    private final LimitedMaces plugin;
 
-    public CraftingListener(MultiMace plugin) {
+    public CraftingListener(LimitedMaces plugin) {
         this.plugin = plugin;
     }
 

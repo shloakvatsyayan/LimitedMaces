@@ -1,30 +1,40 @@
-name: MultiMace
-version: '1.1.3'
-main: org.bonkmc.multiMace.MultiMace
+name: LimitedMaces
+version: '${version}'
+main: org.bonkmc.limitedmaces.LimitedMaces
 api-version: '1.21'
 authors: [ Pyro ]
 website: https://discord.gg/bonknetwork
 
 commands:
   maces:
-    description: View tracked maces or reload config
-    usage: /maces [reload]
-    permission: multimace.use
+    description: View tracked maces, reload config, set limit, or toggle enchanting
+    usage: /maces [reload|setlimit <n>|enchanting <on|off>]
+    permission: limitedmaces.use
   getuntrackedmace:
     description: Get an untracked mace that bypasses the mace limit
     usage: /getuntrackedmace
-    permission: multimace.getuntracked
+    permission: limitedmaces.getuntracked
   clearuntrackedmaces:
     description: Clear all untracked maces
     usage: /clearuntrackedmaces
-    permission: multimace.clearuntracked
+    permission: limitedmaces.clearuntracked
+  removemace:
+    description: Remove a mace from the plugin and the world
+    usage: /removemace <mace-id>
+    permission: limitedmaces.remove
 
 permissions:
-  multimace.use:
+  limitedmaces.use:
     default: op
-  multimace.reload:
+  limitedmaces.reload:
     default: op
-  multimace.getuntracked:
+  limitedmaces.setlimit:
     default: op
-  multimace.clearuntracked:
+  limitedmaces.enchanting:
+    default: op
+  limitedmaces.getuntracked:
+    default: op
+  limitedmaces.clearuntracked:
+    default: op
+  limitedmaces.remove:
     default: op

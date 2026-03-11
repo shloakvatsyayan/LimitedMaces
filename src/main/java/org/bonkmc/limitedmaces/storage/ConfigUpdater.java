@@ -1,4 +1,4 @@
-package org.bonkmc.multiMace.storage;
+package org.bonkmc.limitedmaces.storage;
 
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -27,6 +27,18 @@ public final class ConfigUpdater {
         addUpdate("1.1.0", config -> {
             if (!config.contains("allow-mace-enchanting")) {
                 config.set("allow-mace-enchanting", true);
+            }
+        });
+
+        addUpdate("1.1.4", config -> {
+            String prefix = config.getString("messages.prefix", "");
+            if (prefix.contains("MultiMace")) {
+                config.set("messages.prefix", prefix.replace("MultiMace", "LimitedMaces"));
+            }
+            
+            String reload = config.getString("messages.reload", "");
+            if (reload.contains("MultiMace")) {
+                config.set("messages.reload", reload.replace("MultiMace", "LimitedMaces"));
             }
         });
     }
@@ -103,4 +115,3 @@ public final class ConfigUpdater {
         }
     }
 }
-

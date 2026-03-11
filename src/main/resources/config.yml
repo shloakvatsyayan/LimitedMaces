@@ -1,13 +1,13 @@
-version: 1.1.3
+version: 1.1.4
 allowed-maces: 3
 allow-mace-enchanting: true
 
 messages:
-  prefix: "&6[MultiMace]&r "
+  prefix: "&6[LimitedMaces]&r "
   crafted-broadcast: "&a%player% &7crafted &f%amount%&7 mace(s)! &7(%current%/%max%)"
   destroyed-broadcast: "&cA mace was destroyed! &7(last held by &f%lastHolder%&7) &7(%current%/%max%)"
   containers-blocked: "&cYou can't put the mace in any container."
   limit-reached: "&cMace limit reached. A mace must be destroyed before another can be crafted."
   illegal-removed: "&cAn illegal/untracked mace was removed."
-  reload: "&aMultiMace config reloaded."
+  reload: "&aLimitedMaces config reloaded."
   no-permission: "&cYou don't have permission."
