@@ -41,6 +41,12 @@ public final class ConfigUpdater {
                 config.set("messages.reload", reload.replace("MultiMace", "LimitedMaces"));
             }
         });
+
+        addUpdate("1.1.5", config -> {
+            if (!config.contains("block-container-storage")) {
+                config.set("block-container-storage", true);
+            }
+        });
     }
 
     private void addUpdate(String targetVersion, Consumer<YamlConfiguration> updateAction) {

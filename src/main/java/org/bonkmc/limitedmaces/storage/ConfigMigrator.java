@@ -10,7 +10,7 @@ import java.nio.file.StandardCopyOption;
 
 public final class ConfigMigrator {
     private final JavaPlugin plugin;
-    private static final String MIGRATION_VERSION = "1.1.4";
+    private static final String MIGRATION_VERSION = "1.1.5";
 
     public ConfigMigrator(JavaPlugin plugin) {
         this.plugin = plugin;

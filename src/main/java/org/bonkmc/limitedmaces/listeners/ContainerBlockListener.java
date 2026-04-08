@@ -32,6 +32,10 @@ public final class ContainerBlockListener implements Listener {
     }
 
     private boolean shouldBlockTop(InventoryView view) {
+        if (!plugin.cfg().isBlockContainerStorage()) {
+            return false;
+        }
+
         if (view == null || view.getTopInventory() == null) {
             return false;
         }
@@ -203,16 +207,19 @@ public final class ContainerBlockListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPickup(InventoryPickupItemEvent e) {
+        if (!plugin.cfg().isBlockContainerStorage()) return;
         if (isMace(e.getItem().getItemStack())) e.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onMove(InventoryMoveItemEvent e) {
+        if (!plugin.cfg().isBlockContainerStorage()) return;
         if (isMace(e.getItem())) e.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onOpen(InventoryOpenEvent e) {
+        if (!plugin.cfg().isBlockContainerStorage()) return;
         if (!(e.getPlayer() instanceof Player p)) return;
 
         Inventory top = e.getView().getTopInventory();

@@ -12,7 +12,7 @@ import java.nio.file.StandardCopyOption;
 
 public final class ConfigManager {
     private final JavaPlugin plugin;
-    private static final String CONFIG_VERSION = "1.1.4";
+    private static final String CONFIG_VERSION = "1.1.5";
 
     private File file;
     private YamlConfiguration yaml;
@@ -36,6 +36,7 @@ public final class ConfigManager {
                 def.set("version", CONFIG_VERSION);
                 def.set("allowed-maces", 3);
                 def.set("allow-mace-enchanting", true);
+                def.set("block-container-storage", true);
                 def.set("messages.prefix", "&6[LimitedMaces]&r ");
                 def.set("messages.crafted-broadcast", "&a%player% &7crafted &f%amount%&7 mace(s)! &7(%current%/%max%)");
                 def.set("messages.destroyed-broadcast", "&cA mace was destroyed! &7(last held by &f%lastHolder%&7) &7(%current%/%max%)");
@@ -99,6 +100,10 @@ public final class ConfigManager {
     public void setAllowMaceEnchanting(boolean allow) {
         yaml.set("allow-mace-enchanting", allow);
         save();
+    }
+
+    public boolean isBlockContainerStorage() {
+        return yaml.getBoolean("block-container-storage", true);
     }
 
     public String msg(String key) {

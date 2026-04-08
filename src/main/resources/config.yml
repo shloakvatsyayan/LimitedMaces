@@ -1,6 +1,7 @@
-version: 1.1.4
+version: 1.1.5
 allowed-maces: 3
 allow-mace-enchanting: true
+block-container-storage: true
 
 messages:
   prefix: "&6[LimitedMaces]&r "
