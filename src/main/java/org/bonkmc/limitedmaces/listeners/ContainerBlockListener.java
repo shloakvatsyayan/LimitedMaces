@@ -1,256 +1,195 @@
 package org.bonkmc.limitedmaces.listeners;
 
 import org.bonkmc.limitedmaces.LimitedMaces;
-import org.bukkit.Material;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
+import org.bonkmc.limitedmaces.items.MaceItems;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.*;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryAction;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCreativeEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.inventory.InventoryMoveItemEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.HashMap;
-
 public final class ContainerBlockListener implements Listener {
     private final LimitedMaces plugin;
+    private final ContainerInventoryRules rules;
+    private final ContainerMaceReturner maceReturner;
 
     public ContainerBlockListener(LimitedMaces plugin) {
         this.plugin = plugin;
-    }
-
-    private boolean isMace(ItemStack it) {
-        return it != null && it.getType() == Material.MACE;
-    }
-
-    private boolean isTopSlot(InventoryView view, int rawSlot) {
-        return rawSlot >= 0 && rawSlot < view.getTopInventory().getSize();
-    }
-
-    private boolean shouldBlockTop(InventoryView view) {
-        if (!plugin.cfg().isBlockContainerStorage()) {
-            return false;
-        }
-
-        if (view == null || view.getTopInventory() == null) {
-            return false;
-        }
-
-        Inventory top = view.getTopInventory();
-        if (top.getSize() == 0) {
-            return false;
-        }
-
-        if (plugin.cfg().isAllowMaceEnchanting()) {
-            if (isAnvilOrEnchantmentTable(top)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private boolean isAnvilOrEnchantmentTable(Inventory inventory) {
-        if (inventory == null) return false;
-        
-        InventoryHolder holder = inventory.getHolder();
-        if (holder instanceof BlockState blockState) {
-            Material blockType = blockState.getType();
-            if (blockType == Material.ANVIL || 
-                blockType == Material.CHIPPED_ANVIL || 
-                blockType == Material.DAMAGED_ANVIL ||
-                blockType == Material.ENCHANTING_TABLE ||
-                blockType == Material.GRINDSTONE) {
-                return true;
-            }
-        }
-        
-        try {
-            String typeName = inventory.getType().name();
-            if (typeName.equals("ANVIL") || typeName.equals("ENCHANTING") || typeName.equals("GRINDSTONE")) {
-                return true;
-            }
-        } catch (Exception ignored) {
-        }
-        
-        if (holder instanceof Block block) {
-            Material blockType = block.getType();
-            if (blockType == Material.ANVIL || 
-                blockType == Material.CHIPPED_ANVIL || 
-                blockType == Material.DAMAGED_ANVIL ||
-                blockType == Material.ENCHANTING_TABLE ||
-                blockType == Material.GRINDSTONE) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
-    
-    private boolean isAnvilOrEnchantmentTable(InventoryView view) {
-        if (view == null) return false;
-        Inventory top = view.getTopInventory();
-        return top != null && isAnvilOrEnchantmentTable(top);
+        this.rules = new ContainerInventoryRules(plugin);
+        this.maceReturner = new ContainerMaceReturner();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onClick(InventoryClickEvent e) {
-        if (!(e.getWhoClicked() instanceof Player p)) return;
-
-        InventoryView view = e.getView();
-        
-        if (plugin.cfg().isAllowMaceEnchanting() && isAnvilOrEnchantmentTable(view)) {
-            return;
-        }
-        
-        if (!shouldBlockTop(view)) return;
-
-        boolean inTop = isTopSlot(view, e.getRawSlot());
-
-        ItemStack cursor = e.getCursor();
-        ItemStack current = e.getCurrentItem();
-
-        if (e.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY && isMace(current) && !inTop) {
-            e.setCancelled(true);
-            p.sendMessage(plugin.cfg().msg("containers-blocked"));
+    public void onClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
             return;
         }
 
-        if (inTop && isMace(cursor)) {
-            switch (e.getAction()) {
+        InventoryView inventoryView = event.getView();
+        if (plugin.cfg().isAllowMaceEnchanting() && rules.isMaceWorkbench(inventoryView)) {
+            return;
+        }
+        
+        if (!rules.shouldBlockTop(inventoryView)) {
+            return;
+        }
+
+        boolean isTopSlot = rules.isTopSlot(inventoryView, event.getRawSlot());
+        ItemStack cursorStack = event.getCursor();
+        ItemStack currentStack = event.getCurrentItem();
+
+        if (event.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY && MaceItems.isMace(currentStack) && !isTopSlot) {
+            cancelContainerStorage(event, player);
+            return;
+        }
+
+        if (isTopSlot && MaceItems.isMace(cursorStack)) {
+            switch (event.getAction()) {
                 case PLACE_ALL:
                 case PLACE_ONE:
                 case PLACE_SOME:
                 case SWAP_WITH_CURSOR:
                 case HOTBAR_SWAP:
                 case HOTBAR_MOVE_AND_READD:
-                    e.setCancelled(true);
-                    p.sendMessage(plugin.cfg().msg("containers-blocked"));
+                    cancelContainerStorage(event, player);
                     return;
                 default:
-                    if (e.getClick() == ClickType.NUMBER_KEY || e.getClick() == ClickType.SWAP_OFFHAND) {
-                        e.setCancelled(true);
-                        p.sendMessage(plugin.cfg().msg("containers-blocked"));
+                    if (event.getClick() == ClickType.NUMBER_KEY || event.getClick() == ClickType.SWAP_OFFHAND) {
+                        cancelContainerStorage(event, player);
                         return;
                     }
                     break;
             }
         }
 
-        if (inTop && (e.getAction() == InventoryAction.HOTBAR_SWAP || e.getClick() == ClickType.NUMBER_KEY)) {
-            int btn = e.getHotbarButton();
-            if (btn >= 0) {
-                ItemStack hot = p.getInventory().getItem(btn);
-                if (isMace(hot)) {
-                    e.setCancelled(true);
-                    p.sendMessage(plugin.cfg().msg("containers-blocked"));
+        if (isTopSlot && (event.getAction() == InventoryAction.HOTBAR_SWAP || event.getClick() == ClickType.NUMBER_KEY)) {
+            int hotbarButton = event.getHotbarButton();
+            if (hotbarButton >= 0) {
+                ItemStack hotbarStack = player.getInventory().getItem(hotbarButton);
+                if (MaceItems.isMace(hotbarStack)) {
+                    cancelContainerStorage(event, player);
                 }
             }
         }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onDrag(InventoryDragEvent e) {
-        if (!(e.getWhoClicked() instanceof Player p)) return;
+    public void onDrag(InventoryDragEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
 
-        InventoryView view = e.getView();
-        
-        if (plugin.cfg().isAllowMaceEnchanting() && isAnvilOrEnchantmentTable(view)) {
+        InventoryView inventoryView = event.getView();
+        if (plugin.cfg().isAllowMaceEnchanting() && rules.isMaceWorkbench(inventoryView)) {
             return;
         }
         
-        if (!shouldBlockTop(view)) return;
+        if (!rules.shouldBlockTop(inventoryView)) {
+            return;
+        }
 
-        if (!isMace(e.getOldCursor())) return;
+        if (!MaceItems.isMace(event.getOldCursor())) {
+            return;
+        }
 
-        int topSize = view.getTopInventory().getSize();
-        for (int rawSlot : e.getRawSlots()) {
+        int topSize = inventoryView.getTopInventory().getSize();
+        for (int rawSlot : event.getRawSlots()) {
             if (rawSlot < topSize) {
-                e.setCancelled(true);
-                p.sendMessage(plugin.cfg().msg("containers-blocked"));
+                cancelContainerStorage(event, player);
                 return;
             }
         }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onCreative(InventoryCreativeEvent e) {
-        if (!(e.getWhoClicked() instanceof Player p)) return;
+    public void onCreative(InventoryCreativeEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
 
-        InventoryView view = e.getView();
-        
-        ItemStack cursor = e.getCursor();
-        
-        if (isMace(cursor) && !isTopSlot(view, e.getRawSlot())) {
-            if (!plugin.registry().isTrackedMace(cursor)) {
-                e.setCancelled(true);
-                p.sendMessage(plugin.cfg().msg("containers-blocked"));
+        InventoryView inventoryView = event.getView();
+        ItemStack cursorStack = event.getCursor();
+
+        if (MaceItems.isMace(cursorStack) && !rules.isTopSlot(inventoryView, event.getRawSlot())) {
+            if (!plugin.registry().isTrackedMace(cursorStack)) {
+                cancelContainerStorage(event, player);
                 return;
             }
         }
         
-        if (plugin.cfg().isAllowMaceEnchanting() && isAnvilOrEnchantmentTable(view)) {
+        if (plugin.cfg().isAllowMaceEnchanting() && rules.isMaceWorkbench(inventoryView)) {
             return;
         }
         
-        if (!shouldBlockTop(view)) return;
+        if (!rules.shouldBlockTop(inventoryView)) {
+            return;
+        }
 
-        if (isTopSlot(view, e.getRawSlot()) && isMace(e.getCursor())) {
-            e.setCancelled(true);
-            p.sendMessage(plugin.cfg().msg("containers-blocked"));
+        if (rules.isTopSlot(inventoryView, event.getRawSlot()) && MaceItems.isMace(event.getCursor())) {
+            cancelContainerStorage(event, player);
         }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onPickup(InventoryPickupItemEvent e) {
-        if (!plugin.cfg().isBlockContainerStorage()) return;
-        if (isMace(e.getItem().getItemStack())) e.setCancelled(true);
+    public void onPickup(InventoryPickupItemEvent event) {
+        if (!plugin.cfg().isBlockContainerStorage()) {
+            return;
+        }
+
+        if (MaceItems.isMace(event.getItem().getItemStack())) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onMove(InventoryMoveItemEvent e) {
-        if (!plugin.cfg().isBlockContainerStorage()) return;
-        if (isMace(e.getItem())) e.setCancelled(true);
+    public void onMove(InventoryMoveItemEvent event) {
+        if (!plugin.cfg().isBlockContainerStorage()) {
+            return;
+        }
+
+        if (MaceItems.isMace(event.getItem())) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
-    public void onOpen(InventoryOpenEvent e) {
-        if (!plugin.cfg().isBlockContainerStorage()) return;
-        if (!(e.getPlayer() instanceof Player p)) return;
-
-        Inventory top = e.getView().getTopInventory();
-        if (top == null) return;
-
-        if (plugin.cfg().isAllowMaceEnchanting()) {
-            if (isAnvilOrEnchantmentTable(top)) {
-                return;
-            }
+    public void onOpen(InventoryOpenEvent event) {
+        if (!plugin.cfg().isBlockContainerStorage()) {
+            return;
         }
 
-        boolean found = false;
-        ItemStack[] contents = top.getContents();
-
-        for (int i = 0; i < contents.length; i++) {
-            ItemStack it = contents[i];
-            if (!isMace(it)) continue;
-
-            contents[i] = null;
-            found = true;
-
-            HashMap<Integer, ItemStack> leftover = p.getInventory().addItem(it);
-            if (!leftover.isEmpty()) {
-                leftover.values().forEach(drop -> p.getWorld().dropItemNaturally(p.getLocation(), drop));
-            }
+        if (!(event.getPlayer() instanceof Player player)) {
+            return;
         }
 
-        if (found) {
-            top.setContents(contents);
-            p.sendMessage(plugin.cfg().msg("containers-blocked"));
+        Inventory topInventory = event.getView().getTopInventory();
+        if (topInventory == null) {
+            return;
+        }
+
+        if (plugin.cfg().isAllowMaceEnchanting() && rules.isMaceWorkbench(topInventory)) {
+            return;
+        }
+
+        if (maceReturner.returnStoredMaces(player, topInventory)) {
+            player.sendMessage(plugin.cfg().msg("containers-blocked"));
             plugin.recipes().syncWithLimit();
         }
+    }
+
+    private void cancelContainerStorage(Cancellable event, Player player) {
+        event.setCancelled(true);
+        player.sendMessage(plugin.cfg().msg("containers-blocked"));
     }
 }

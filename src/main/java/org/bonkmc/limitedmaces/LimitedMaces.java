@@ -12,6 +12,9 @@ import org.bonkmc.limitedmaces.storage.ConfigManager;
 import org.bonkmc.limitedmaces.storage.ConfigMigrator;
 import org.bonkmc.limitedmaces.storage.MaceRegistry;
 import org.bukkit.Bukkit;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.PluginCommand;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -38,30 +41,20 @@ public final class LimitedMaces extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new ContainerBlockListener(this), this);
         Bukkit.getPluginManager().registerEvents(new TrackingListener(this), this);
 
-        MacesCommand cmd = new MacesCommand(this);
-        if (getCommand("maces") != null) {
-            getCommand("maces").setExecutor(cmd);
-            getCommand("maces").setTabCompleter(cmd);
-        }
+        MacesCommand macesCommand = new MacesCommand(this);
+        registerTabCommand("maces", macesCommand, macesCommand);
 
-        GetUntrackedMaceCommand getUntrackedCmd = new GetUntrackedMaceCommand(this);
-        if (getCommand("getuntrackedmace") != null) {
-            getCommand("getuntrackedmace").setExecutor(getUntrackedCmd);
-        }
+        GetUntrackedMaceCommand getUntrackedCommand = new GetUntrackedMaceCommand(this);
+        registerCommand("getuntrackedmace", getUntrackedCommand);
 
-        ClearUntrackedMacesCommand clearUntrackedCmd = new ClearUntrackedMacesCommand(this);
-        if (getCommand("clearuntrackedmaces") != null) {
-            getCommand("clearuntrackedmaces").setExecutor(clearUntrackedCmd);
-        }
+        ClearUntrackedMacesCommand clearUntrackedCommand = new ClearUntrackedMacesCommand(this);
+        registerCommand("clearuntrackedmaces", clearUntrackedCommand);
 
-        RemoveMaceCommand removeMaceCmd = new RemoveMaceCommand(this);
-        if (getCommand("removemace") != null) {
-            getCommand("removemace").setExecutor(removeMaceCmd);
-            getCommand("removemace").setTabCompleter(removeMaceCmd);
-        }
+        RemoveMaceCommand removeMaceCommand = new RemoveMaceCommand(this);
+        registerTabCommand("removemace", removeMaceCommand, removeMaceCommand);
 
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            maceRegistry.scanAndNormalizePlayerInventory(p);
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            maceRegistry.scanAndNormalizePlayerInventory(player);
         }
 
         recipeController.syncWithLimit();
@@ -73,9 +66,34 @@ public final class LimitedMaces extends JavaPlugin {
     @Override
     public void onDisable() {
         try {
-            maceRegistry.save();
-        } catch (Exception ignored) {}
+            if (maceRegistry != null) {
+                maceRegistry.save();
+            }
+        } catch (RuntimeException exception) {
+            getLogger().warning("Failed to save tracked maces during shutdown: " + exception.getMessage());
+        }
         getLogger().info("LimitedMaces disabled.");
+    }
+
+    private void registerCommand(String commandName, CommandExecutor executor) {
+        PluginCommand command = getCommand(commandName);
+        if (command == null) {
+            getLogger().warning("Command is missing from plugin.yml: " + commandName);
+            return;
+        }
+
+        command.setExecutor(executor);
+    }
+
+    private void registerTabCommand(String commandName, CommandExecutor executor, TabCompleter completer) {
+        PluginCommand command = getCommand(commandName);
+        if (command == null) {
+            getLogger().warning("Command is missing from plugin.yml: " + commandName);
+            return;
+        }
+
+        command.setExecutor(executor);
+        command.setTabCompleter(completer);
     }
 
     public ConfigManager cfg() {

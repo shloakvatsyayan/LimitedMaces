@@ -28,8 +28,8 @@ public final class ConfigMigrator {
             migrateFromOldFolder(oldFolder);
             deleteOldFolder(oldFolder);
             plugin.getLogger().info("Migration completed successfully. Old MultiMace folder deleted.");
-        } catch (Exception e) {
-            plugin.getLogger().severe("Migration failed: " + e.getMessage());
+        } catch (IOException exception) {
+            plugin.getLogger().severe("Migration failed: " + exception.getMessage());
         }
     }
 
@@ -44,10 +44,10 @@ public final class ConfigMigrator {
             migrateConfig(oldConfigFile);
         }
 
-        File oldDataDir = new File(oldFolder, "data");
-        File oldDataFile = new File(oldDataDir, "maces.yml");
-        if (oldDataFile.exists()) {
-            migrateData(oldDataFile);
+        File oldMaceDir = new File(oldFolder, "data");
+        File oldMaceFile = new File(oldMaceDir, "maces.yml");
+        if (oldMaceFile.exists()) {
+            migrateMaceFile(oldMaceFile);
         }
     }
 
@@ -62,7 +62,7 @@ public final class ConfigMigrator {
         YamlConfiguration oldConfig = YamlConfiguration.loadConfiguration(oldConfigFile);
         String version = oldConfig.getString("version", "1.0");
 
-        if (isVersionOlderOrEqual(version, "1.1.3")) {
+        if (VersionComparator.isOlderOrEqual(version, "1.1.3")) {
             plugin.getLogger().info("Migrating config from version " + version);
 
             String prefix = oldConfig.getString("messages.prefix", "&6[MultiMace]&r ");
@@ -82,16 +82,16 @@ public final class ConfigMigrator {
         plugin.getLogger().info("Config migrated to new location: " + newConfigFile.getPath());
     }
 
-    private void migrateData(File oldDataFile) throws IOException {
-        File newDataFile = new File(plugin.getDataFolder(), "maces.yml");
+    private void migrateMaceFile(File oldMaceFile) throws IOException {
+        File newMaceFile = new File(plugin.getDataFolder(), "maces.yml");
         
-        if (newDataFile.exists()) {
+        if (newMaceFile.exists()) {
             plugin.getLogger().info("Data file already exists in new location, skipping data migration.");
             return;
         }
 
-        Files.copy(oldDataFile.toPath(), newDataFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-        plugin.getLogger().info("Data migrated to new location: " + newDataFile.getPath());
+        Files.copy(oldMaceFile.toPath(), newMaceFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        plugin.getLogger().info("Data migrated to new location: " + newMaceFile.getPath());
     }
 
     private void deleteOldFolder(File folder) {
@@ -102,34 +102,13 @@ public final class ConfigMigrator {
             for (File file : files) {
                 if (file.isDirectory()) {
                     deleteOldFolder(file);
-                } else {
-                    file.delete();
+                } else if (!file.delete()) {
+                    plugin.getLogger().warning("Failed to delete migrated file: " + file.getPath());
                 }
             }
         }
-        folder.delete();
-    }
-
-    private boolean isVersionOlderOrEqual(String version, String target) {
-        String[] parts1 = version.split("\\.");
-        String[] parts2 = target.split("\\.");
-
-        int maxLength = Math.max(parts1.length, parts2.length);
-        for (int i = 0; i < maxLength; i++) {
-            int v1 = i < parts1.length ? parseInt(parts1[i]) : 0;
-            int v2 = i < parts2.length ? parseInt(parts2[i]) : 0;
-
-            if (v1 < v2) return true;
-            if (v1 > v2) return false;
-        }
-        return true;
-    }
-
-    private int parseInt(String s) {
-        try {
-            return Integer.parseInt(s);
-        } catch (NumberFormatException e) {
-            return 0;
+        if (!folder.delete()) {
+            plugin.getLogger().warning("Failed to delete migrated folder: " + folder.getPath());
         }
     }
 }

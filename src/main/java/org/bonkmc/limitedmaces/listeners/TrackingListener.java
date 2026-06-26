@@ -1,10 +1,7 @@
 package org.bonkmc.limitedmaces.listeners;
 
 import org.bonkmc.limitedmaces.LimitedMaces;
-import org.bonkmc.limitedmaces.storage.MaceRecord;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.entity.Entity;
+import org.bonkmc.limitedmaces.items.MaceItems;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -20,76 +17,52 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 public final class TrackingListener implements Listener {
     private final LimitedMaces plugin;
-    private final Set<UUID> pickedUpItems = new HashSet<>();
-    private final Set<UUID> naturallyDespawnedItems = new HashSet<>();
+    private final MaceDestructionNotifier destructionNotifier;
+    private final TransientItemRemovalTracker removalTracker;
+    private final MacePickupRegistrar pickupRegistrar;
 
     public TrackingListener(LimitedMaces plugin) {
         this.plugin = plugin;
+        this.destructionNotifier = new MaceDestructionNotifier(plugin);
+        this.removalTracker = new TransientItemRemovalTracker(plugin);
+        this.pickupRegistrar = new MacePickupRegistrar(plugin);
     }
 
-    private boolean isMace(ItemStack it) {
-        return it != null && it.getType() == Material.MACE;
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onJoin(PlayerJoinEvent event) {
+        plugin.registry().scanAndNormalizePlayerInventory(event.getPlayer());
+        plugin.recipes().syncWithLimit();
     }
 
-    private void broadcastDestroyed(UUID id, String reason) {
-        MaceRecord r = plugin.registry().getRecord(id);
-        if (r == null) return;
-        
-        if (r.isUntracked) {
-            plugin.registry().removeTracked(id, reason);
-            plugin.recipes().syncWithLimit();
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onQuit(PlayerQuitEvent event) {
+        plugin.registry().scanAndNormalizePlayerInventory(event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onDrop(PlayerDropItemEvent event) {
+        Item droppedMace = event.getItemDrop();
+        ItemStack stack = droppedMace.getItemStack();
+        if (!MaceItems.isMace(stack)) {
             return;
         }
-        
-        String lastHolder = (r.lastHolderName != null && !r.lastHolderName.isBlank())
-                ? r.lastHolderName
-                : "Unknown";
 
-        plugin.registry().removeTracked(id, reason);
-        plugin.recipes().syncWithLimit();
-
-        Bukkit.broadcastMessage(plugin.cfg().msg("destroyed-broadcast")
-                .replace("%lastHolder%", lastHolder)
-                .replace("%reason%", reason)
-                .replace("%current%", String.valueOf(plugin.registry().getActiveCount()))
-                .replace("%max%", String.valueOf(plugin.cfg().getAllowedMaces())));
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST)
-    public void onJoin(PlayerJoinEvent e) {
-        plugin.registry().scanAndNormalizePlayerInventory(e.getPlayer());
-        plugin.recipes().syncWithLimit();
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST)
-    public void onQuit(PlayerQuitEvent e) {
-        plugin.registry().scanAndNormalizePlayerInventory(e.getPlayer());
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onDrop(PlayerDropItemEvent e) {
-        Item dropped = e.getItemDrop();
-        ItemStack stack = dropped.getItemStack();
-        if (!isMace(stack)) return;
-
-        Optional<UUID> id = plugin.registry().getTrackedId(stack);
-        if (id.isPresent()) {
-            plugin.registry().updateDropped(id.get(), dropped.getLocation(), e.getPlayer());
+        Optional<UUID> trackedMaceId = plugin.registry().getTrackedId(stack);
+        if (trackedMaceId.isPresent()) {
+            plugin.registry().updateDropped(trackedMaceId.get(), droppedMace.getLocation(), event.getPlayer());
         } else {
             if (plugin.registry().getActiveCount() < plugin.cfg().getAllowedMaces()) {
-                UUID newId = UUID.randomUUID();
-                plugin.registry().tagWithId(stack, newId);
-                plugin.registry().ensureRegisteredExisting(newId, e.getPlayer(), dropped.getLocation(), "DROPPED");
+                UUID maceId = UUID.randomUUID();
+                plugin.registry().tagWithId(stack, maceId);
+                plugin.registry().ensureRegisteredExisting(maceId, event.getPlayer(), droppedMace.getLocation(), "DROPPED");
             } else {
-                dropped.remove();
-                e.getPlayer().sendMessage(plugin.cfg().msg("illegal-removed"));
+                droppedMace.remove();
+                event.getPlayer().sendMessage(plugin.cfg().msg("illegal-removed"));
             }
         }
 
@@ -97,112 +70,94 @@ public final class TrackingListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onPickup(EntityPickupItemEvent e) {
-        Entity ent = e.getEntity();
-        if (!(ent instanceof Player p)) return;
+    public void onPickup(EntityPickupItemEvent event) {
+        if (!(event.getEntity() instanceof Player player)) {
+            return;
+        }
 
-        ItemStack stack = e.getItem().getItemStack();
-        if (!isMace(stack)) return;
+        Item droppedMace = event.getItem();
+        ItemStack stack = droppedMace.getItemStack();
+        if (!MaceItems.isMace(stack)) {
+            return;
+        }
 
-        UUID itemEntityId = e.getItem().getUniqueId();
-        pickedUpItems.add(itemEntityId);
-        
-        Bukkit.getScheduler().runTaskLater(plugin, () -> pickedUpItems.remove(itemEntityId), 5L);
+        removalTracker.rememberPickup(droppedMace);
 
-        Optional<UUID> id = plugin.registry().getTrackedId(stack);
-        if (id.isPresent()) {
-            UUID mid = id.get();
-            if (plugin.registry().getRecord(mid) == null) {
-                if (plugin.registry().getActiveCount() < plugin.cfg().getAllowedMaces()) {
-                    plugin.registry().ensureRegisteredExisting(mid, p, p.getLocation(), "HELD");
-                } else {
-                    e.setCancelled(true);
-                    e.getItem().remove();
-                    p.sendMessage(plugin.cfg().msg("illegal-removed"));
-                    plugin.recipes().syncWithLimit();
-                    return;
-                }
-            }
-            plugin.registry().updateLastSeen(mid, p, p.getLocation(), "HELD");
-        } else {
-            if (plugin.registry().getActiveCount() < plugin.cfg().getAllowedMaces()) {
-                UUID newId = UUID.randomUUID();
-                plugin.registry().tagWithId(stack, newId);
-                plugin.registry().ensureRegisteredExisting(newId, p, p.getLocation(), "HELD");
-            } else {
-                e.setCancelled(true);
-                e.getItem().remove();
-                p.sendMessage(plugin.cfg().msg("illegal-removed"));
-                plugin.recipes().syncWithLimit();
-                return;
-            }
+        if (!pickupRegistrar.registerPickup(event, player, stack)) {
+            return;
         }
 
         plugin.recipes().syncWithLimit();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
-    public void onDespawn(ItemDespawnEvent e) {
-        ItemStack stack = e.getEntity().getItemStack();
-        if (!isMace(stack)) return;
+    public void onDespawn(ItemDespawnEvent event) {
+        Item droppedMace = event.getEntity();
+        ItemStack stack = droppedMace.getItemStack();
+        if (!MaceItems.isMace(stack)) {
+            return;
+        }
 
-        UUID itemEntityId = e.getEntity().getUniqueId();
-        naturallyDespawnedItems.add(itemEntityId);
-        
-        Bukkit.getScheduler().runTaskLater(plugin, () -> naturallyDespawnedItems.remove(itemEntityId), 5L);
-
-        plugin.registry().getTrackedId(stack).ifPresent(id -> broadcastDestroyed(id, "despawn"));
+        removalTracker.rememberDespawn(droppedMace);
+        plugin.registry().getTrackedId(stack).ifPresent(maceId -> destructionNotifier.broadcastDestroyed(maceId, "despawn"));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onCombust(EntityCombustEvent e) {
-        if (!(e.getEntity() instanceof Item item)) return;
-        ItemStack stack = item.getItemStack();
-        if (!isMace(stack)) return;
+    public void onCombust(EntityCombustEvent event) {
+        if (!(event.getEntity() instanceof Item droppedMace)) {
+            return;
+        }
 
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (!item.isValid() || item.isDead()) {
-                plugin.registry().getTrackedId(stack).ifPresent(id -> broadcastDestroyed(id, "combust"));
+        ItemStack stack = droppedMace.getItemStack();
+        if (!MaceItems.isMace(stack)) {
+            return;
+        }
+
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (!droppedMace.isValid() || droppedMace.isDead()) {
+                plugin.registry().getTrackedId(stack).ifPresent(maceId -> destructionNotifier.broadcastDestroyed(maceId, "combust"));
             }
         }, 1L);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onDamage(EntityDamageEvent e) {
-        if (!(e.getEntity() instanceof Item item)) return;
-        ItemStack stack = item.getItemStack();
-        if (!isMace(stack)) return;
+    public void onDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Item droppedMace)) {
+            return;
+        }
 
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (!item.isValid() || item.isDead()) {
-                plugin.registry().getTrackedId(stack).ifPresent(id -> broadcastDestroyed(id, "damage:" + e.getCause().name()));
+        ItemStack stack = droppedMace.getItemStack();
+        if (!MaceItems.isMace(stack)) {
+            return;
+        }
+
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (!droppedMace.isValid() || droppedMace.isDead()) {
+                plugin.registry().getTrackedId(stack).ifPresent(maceId -> destructionNotifier.broadcastDestroyed(maceId, "damage:" + event.getCause().name()));
             }
         }, 1L);
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
-    public void onRemove(EntityRemoveEvent e) {
-        if (!(e.getEntity() instanceof Item item)) return;
-        
-        UUID itemEntityId = item.getUniqueId();
-        
-        if (pickedUpItems.contains(itemEntityId)) {
+    public void onRemove(EntityRemoveEvent event) {
+        if (!(event.getEntity() instanceof Item droppedMace)) {
             return;
         }
-        
-        if (naturallyDespawnedItems.contains(itemEntityId)) {
-            return;
-        }
-        
-        ItemStack stack = item.getItemStack();
-        if (stack == null || !isMace(stack)) return;
 
-        Optional<UUID> idOpt = plugin.registry().getTrackedId(stack);
-        if (idOpt.isPresent()) {
-            UUID id = idOpt.get();
-            MaceRecord record = plugin.registry().getRecord(id);
-            if (record != null) {
-                broadcastDestroyed(id, "removed");
+        if (removalTracker.shouldIgnoreRemoval(droppedMace)) {
+            return;
+        }
+        
+        ItemStack stack = droppedMace.getItemStack();
+        if (!MaceItems.isMace(stack)) {
+            return;
+        }
+
+        Optional<UUID> trackedMaceId = plugin.registry().getTrackedId(stack);
+        if (trackedMaceId.isPresent()) {
+            UUID maceId = trackedMaceId.get();
+            if (plugin.registry().getRecord(maceId) != null) {
+                destructionNotifier.broadcastDestroyed(maceId, "removed");
             }
         }
     }

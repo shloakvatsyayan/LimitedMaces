@@ -68,12 +68,12 @@ public final class ConfigUpdater {
         plugin.getLogger().info("Updating config from version " + configVersion + " to " + currentVersion);
 
         for (ConfigUpdate update : updates) {
-            if (isVersionNewer(update.targetVersion, configVersion)) {
+            if (VersionComparator.isNewer(update.targetVersion(), configVersion)) {
                 try {
-                    update.updateAction.accept(config);
-                    plugin.getLogger().info("Applied config update for version " + update.targetVersion);
-                } catch (Exception e) {
-                    plugin.getLogger().warning("Failed to apply config update for version " + update.targetVersion + ": " + e.getMessage());
+                    update.apply(config);
+                    plugin.getLogger().info("Applied config update for version " + update.targetVersion());
+                } catch (RuntimeException exception) {
+                    plugin.getLogger().warning("Failed to apply config update for version " + update.targetVersion() + ": " + exception.getMessage());
                 }
             }
         }
@@ -83,41 +83,8 @@ public final class ConfigUpdater {
         try {
             config.save(configFile);
             plugin.getLogger().info("Config updated successfully to version " + currentVersion);
-        } catch (IOException e) {
-            plugin.getLogger().severe("Failed to save updated config: " + e.getMessage());
-        }
-    }
-
-    private boolean isVersionNewer(String version1, String version2) {
-        String[] parts1 = version1.split("\\.");
-        String[] parts2 = version2.split("\\.");
-
-        int maxLength = Math.max(parts1.length, parts2.length);
-        for (int i = 0; i < maxLength; i++) {
-            int v1 = i < parts1.length ? parseInt(parts1[i]) : 0;
-            int v2 = i < parts2.length ? parseInt(parts2[i]) : 0;
-
-            if (v1 > v2) return true;
-            if (v1 < v2) return false;
-        }
-        return false;
-    }
-
-    private int parseInt(String s) {
-        try {
-            return Integer.parseInt(s);
-        } catch (NumberFormatException e) {
-            return 0;
-        }
-    }
-
-    private static final class ConfigUpdate {
-        final String targetVersion;
-        final Consumer<YamlConfiguration> updateAction;
-
-        ConfigUpdate(String targetVersion, Consumer<YamlConfiguration> updateAction) {
-            this.targetVersion = targetVersion;
-            this.updateAction = updateAction;
+        } catch (IOException exception) {
+            plugin.getLogger().severe("Failed to save updated config: " + exception.getMessage());
         }
     }
 }

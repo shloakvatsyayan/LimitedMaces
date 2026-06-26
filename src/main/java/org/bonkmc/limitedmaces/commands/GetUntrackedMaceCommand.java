@@ -5,6 +5,9 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+
+import java.util.HashMap;
 
 public final class GetUntrackedMaceCommand implements CommandExecutor {
     private final LimitedMaces plugin;
@@ -15,7 +18,7 @@ public final class GetUntrackedMaceCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player p)) {
+        if (!(sender instanceof Player player)) {
             sender.sendMessage(plugin.cfg().msg("no-permission"));
             return true;
         }
@@ -25,10 +28,10 @@ public final class GetUntrackedMaceCommand implements CommandExecutor {
             return true;
         }
 
-        org.bukkit.inventory.ItemStack mace = plugin.registry().createAndRegisterNewMace(p, p.getLocation(), true);
-        java.util.HashMap<Integer, org.bukkit.inventory.ItemStack> leftover = p.getInventory().addItem(mace);
-        if (!leftover.isEmpty()) {
-            leftover.values().forEach(it -> p.getWorld().dropItemNaturally(p.getLocation(), it));
+        ItemStack mace = plugin.registry().createAndRegisterNewMace(player, player.getLocation(), true);
+        HashMap<Integer, ItemStack> overflowStacks = player.getInventory().addItem(mace);
+        if (!overflowStacks.isEmpty()) {
+            overflowStacks.values().forEach(stack -> player.getWorld().dropItemNaturally(player.getLocation(), stack));
         }
 
         sender.sendMessage(plugin.cfg().color("&aUntracked mace given! This mace bypasses the mace limit."));

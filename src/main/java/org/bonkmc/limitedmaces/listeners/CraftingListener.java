@@ -1,6 +1,7 @@
 package org.bonkmc.limitedmaces.listeners;
 
 import org.bonkmc.limitedmaces.LimitedMaces;
+import org.bonkmc.limitedmaces.items.MaceItems;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -23,115 +24,116 @@ public final class CraftingListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
-    public void onPrepare(PrepareItemCraftEvent e) {
-        if (e.getRecipe() == null) return;
-        ItemStack res = e.getRecipe().getResult();
-        if (res == null || res.getType() != Material.MACE) return;
+    public void onPrepare(PrepareItemCraftEvent event) {
+        if (event.getRecipe() == null) return;
+        ItemStack recipeResult = event.getRecipe().getResult();
+        if (!MaceItems.isMace(recipeResult)) return;
 
         if (plugin.registry().getActiveCount() >= plugin.cfg().getAllowedMaces()) {
-            e.getInventory().setResult(new ItemStack(Material.AIR));
+            event.getInventory().setResult(new ItemStack(Material.AIR));
         }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onCraft(CraftItemEvent e) {
-        if (e.getRecipe() == null) return;
-        ItemStack res = e.getRecipe().getResult();
-        if (res == null || res.getType() != Material.MACE) return;
+    public void onCraft(CraftItemEvent event) {
+        if (event.getRecipe() == null) return;
+        ItemStack recipeResult = event.getRecipe().getResult();
+        if (!MaceItems.isMace(recipeResult)) return;
 
-        if (!(e.getWhoClicked() instanceof Player p)) return;
+        if (!(event.getWhoClicked() instanceof Player player)) return;
 
         int allowed = plugin.cfg().getAllowedMaces();
         int active = plugin.registry().getActiveCount();
         int remaining = Math.max(0, allowed - active);
 
         if (remaining <= 0) {
-            e.setCancelled(true);
-            p.sendMessage(plugin.cfg().msg("limit-reached"));
+            event.setCancelled(true);
+            player.sendMessage(plugin.cfg().msg("limit-reached"));
             plugin.recipes().syncWithLimit();
             return;
         }
 
-        if (e.isShiftClick()) {
-            e.setCancelled(true);
+        if (event.isShiftClick()) {
+            event.setCancelled(true);
 
-            CraftingInventory inv = e.getInventory();
-            ItemStack[] matrix = inv.getMatrix();
+            CraftingInventory inventory = event.getInventory();
+            ItemStack[] matrix = inventory.getMatrix();
 
             int cores = countTotal(matrix, Material.HEAVY_CORE);
-            int rods  = countTotal(matrix, Material.BREEZE_ROD);
+            int rods = countTotal(matrix, Material.BREEZE_ROD);
             int craftable = Math.min(cores, rods);
 
-            int toMake = Math.min(remaining, craftable);
-            if (toMake <= 0) {
-                p.sendMessage(plugin.cfg().msg("limit-reached"));
+            int craftedMaces = Math.min(remaining, craftable);
+            if (craftedMaces <= 0) {
+                player.sendMessage(plugin.cfg().msg("limit-reached"));
                 plugin.recipes().syncWithLimit();
                 return;
             }
 
-            consume(matrix, Material.HEAVY_CORE, toMake);
-            consume(matrix, Material.BREEZE_ROD, toMake);
-            inv.setMatrix(matrix);
+            consume(matrix, Material.HEAVY_CORE, craftedMaces);
+            consume(matrix, Material.BREEZE_ROD, craftedMaces);
+            inventory.setMatrix(matrix);
 
-            for (int i = 0; i < toMake; i++) {
-                ItemStack mace = plugin.registry().createAndRegisterNewMace(p, p.getLocation());
-                HashMap<Integer, ItemStack> leftover = p.getInventory().addItem(mace);
-                if (!leftover.isEmpty()) {
-                    leftover.values().forEach(it -> p.getWorld().dropItemNaturally(p.getLocation(), it));
-                }
+            for (int craftedIndex = 0; craftedIndex < craftedMaces; craftedIndex++) {
+                ItemStack mace = plugin.registry().createAndRegisterNewMace(player, player.getLocation());
+                giveOrDrop(player, mace);
             }
 
-            Bukkit.broadcastMessage(plugin.cfg().msg("crafted-broadcast")
-                    .replace("%player%", p.getName())
-                    .replace("%amount%", String.valueOf(toMake))
-                    .replace("%current%", String.valueOf(plugin.registry().getActiveCount()))
-                    .replace("%max%", String.valueOf(allowed)));
-
+            broadcastCraft(player, craftedMaces, allowed);
             plugin.recipes().syncWithLimit();
-            Bukkit.getScheduler().runTask(plugin, p::updateInventory);
+            Bukkit.getScheduler().runTask(plugin, player::updateInventory);
             return;
         }
 
-        ItemStack tagged = plugin.registry().createAndRegisterNewMace(p, p.getLocation());
-        e.setCurrentItem(tagged);
-
-        Bukkit.broadcastMessage(plugin.cfg().msg("crafted-broadcast")
-                .replace("%player%", p.getName())
-                .replace("%amount%", "1")
-                .replace("%current%", String.valueOf(plugin.registry().getActiveCount()))
-                .replace("%max%", String.valueOf(allowed)));
-
+        ItemStack taggedMace = plugin.registry().createAndRegisterNewMace(player, player.getLocation());
+        event.setCurrentItem(taggedMace);
+        broadcastCraft(player, 1, allowed);
         plugin.recipes().syncWithLimit();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onCrafter(CrafterCraftEvent e) {
-        ItemStack res = e.getResult();
-        if (res == null || res.getType() != Material.MACE) return;
+    public void onCrafter(CrafterCraftEvent event) {
+        ItemStack recipeResult = event.getResult();
+        if (!MaceItems.isMace(recipeResult)) return;
 
-        e.setCancelled(true);
-        e.setResult(new ItemStack(Material.AIR));
+        event.setCancelled(true);
+        event.setResult(new ItemStack(Material.AIR));
     }
 
-    private int countTotal(ItemStack[] matrix, Material m) {
+    private int countTotal(ItemStack[] matrix, Material material) {
         int total = 0;
-        for (ItemStack it : matrix) {
-            if (it != null && it.getType() == m) total += it.getAmount();
+        for (ItemStack stack : matrix) {
+            if (stack != null && stack.getType() == material) total += stack.getAmount();
         }
         return total;
     }
 
-    private void consume(ItemStack[] matrix, Material m, int amount) {
-        int left = amount;
-        for (int i = 0; i < matrix.length && left > 0; i++) {
-            ItemStack it = matrix[i];
-            if (it == null || it.getType() != m) continue;
+    private void consume(ItemStack[] matrix, Material material, int amount) {
+        int remainingAmount = amount;
+        for (int slot = 0; slot < matrix.length && remainingAmount > 0; slot++) {
+            ItemStack stack = matrix[slot];
+            if (stack == null || stack.getType() != material) continue;
 
-            int take = Math.min(left, it.getAmount());
-            it.setAmount(it.getAmount() - take);
-            left -= take;
+            int consumedAmount = Math.min(remainingAmount, stack.getAmount());
+            stack.setAmount(stack.getAmount() - consumedAmount);
+            remainingAmount -= consumedAmount;
 
-            if (it.getAmount() <= 0) matrix[i] = null;
+            if (stack.getAmount() <= 0) matrix[slot] = null;
         }
+    }
+
+    private void giveOrDrop(Player player, ItemStack stack) {
+        HashMap<Integer, ItemStack> overflowStacks = player.getInventory().addItem(stack);
+        if (!overflowStacks.isEmpty()) {
+            overflowStacks.values().forEach(overflowStack -> player.getWorld().dropItemNaturally(player.getLocation(), overflowStack));
+        }
+    }
+
+    private void broadcastCraft(Player player, int craftedMaces, int allowed) {
+        Bukkit.broadcastMessage(plugin.cfg().msg("crafted-broadcast")
+                .replace("%player%", player.getName())
+                .replace("%amount%", String.valueOf(craftedMaces))
+                .replace("%current%", String.valueOf(plugin.registry().getActiveCount()))
+                .replace("%max%", String.valueOf(allowed)));
     }
 }

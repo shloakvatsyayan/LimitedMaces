@@ -11,11 +11,11 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 
 public final class ConfigManager {
-    private final JavaPlugin plugin;
     private static final String CONFIG_VERSION = "1.1.5";
 
-    private File file;
-    private YamlConfiguration yaml;
+    private final JavaPlugin plugin;
+    private File configFile;
+    private YamlConfiguration configYaml;
 
     public ConfigManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -26,38 +26,40 @@ public final class ConfigManager {
             plugin.getDataFolder().mkdirs();
         }
 
-        this.file = new File(plugin.getDataFolder(), "config.yml");
+        this.configFile = new File(plugin.getDataFolder(), "config.yml");
 
-        if (!file.exists()) {
-            boolean copied = copyEmbeddedToFile("config.yml", file);
+        if (!configFile.exists()) {
+            boolean copied = copyEmbeddedToFile("config.yml", configFile);
 
             if (!copied) {
-                YamlConfiguration def = new YamlConfiguration();
-                def.set("version", CONFIG_VERSION);
-                def.set("allowed-maces", 3);
-                def.set("allow-mace-enchanting", true);
-                def.set("block-container-storage", true);
-                def.set("messages.prefix", "&6[LimitedMaces]&r ");
-                def.set("messages.crafted-broadcast", "&a%player% &7crafted &f%amount%&7 mace(s)! &7(%current%/%max%)");
-                def.set("messages.destroyed-broadcast", "&cA mace was destroyed! &7(last held by &f%lastHolder%&7) &7(%current%/%max%)");
-                def.set("messages.containers-blocked", "&cYou can't put the mace in any container.");
-                def.set("messages.limit-reached", "&cMace limit reached. A mace must be destroyed before another can be crafted.");
-                def.set("messages.illegal-removed", "&cAn illegal/untracked mace was removed.");
-                def.set("messages.reload", "&aLimitedMaces config reloaded.");
-                def.set("messages.no-permission", "&cYou don't have permission.");
+                YamlConfiguration fallbackConfig = new YamlConfiguration();
+                fallbackConfig.set("version", CONFIG_VERSION);
+                fallbackConfig.set("allowed-maces", 3);
+                fallbackConfig.set("allow-mace-enchanting", true);
+                fallbackConfig.set("block-container-storage", true);
+                fallbackConfig.set("messages.prefix", "&6[LimitedMaces]&r ");
+                fallbackConfig.set("messages.crafted-broadcast", "&a%player% &7crafted &f%amount%&7 mace(s)! &7(%current%/%max%)");
+                fallbackConfig.set("messages.destroyed-broadcast", "&cA mace was destroyed! &7(last held by &f%lastHolder%&7) &7(%current%/%max%)");
+                fallbackConfig.set("messages.containers-blocked", "&cYou can't put the mace in any container.");
+                fallbackConfig.set("messages.limit-reached", "&cMace limit reached. A mace must be destroyed before another can be crafted.");
+                fallbackConfig.set("messages.illegal-removed", "&cAn illegal/untracked mace was removed.");
+                fallbackConfig.set("messages.reload", "&aLimitedMaces config reloaded.");
+                fallbackConfig.set("messages.no-permission", "&cYou don't have permission.");
 
                 try {
-                    def.save(file);
-                } catch (IOException ignored) {}
+                    fallbackConfig.save(configFile);
+                } catch (IOException exception) {
+                    plugin.getLogger().severe("Failed to write fallback config.yml: " + exception.getMessage());
+                }
             }
         }
 
-        this.yaml = YamlConfiguration.loadConfiguration(file);
+        this.configYaml = YamlConfiguration.loadConfiguration(configFile);
 
-        ConfigUpdater updater = new ConfigUpdater(plugin, file, CONFIG_VERSION);
+        ConfigUpdater updater = new ConfigUpdater(plugin, configFile, CONFIG_VERSION);
         updater.update();
 
-        this.yaml = YamlConfiguration.loadConfiguration(file);
+        this.configYaml = YamlConfiguration.loadConfiguration(configFile);
     }
 
     private boolean copyEmbeddedToFile(String resourcePath, File targetFile) {
@@ -65,8 +67,8 @@ public final class ConfigManager {
             if (in == null) return false;
             Files.copy(in, targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
             return true;
-        } catch (Exception e) {
-            plugin.getLogger().warning("Failed to copy embedded resource '" + resourcePath + "': " + e.getMessage());
+        } catch (IOException exception) {
+            plugin.getLogger().warning("Failed to copy embedded resource '" + resourcePath + "': " + exception.getMessage());
             return false;
         }
     }
@@ -76,52 +78,45 @@ public final class ConfigManager {
     }
 
     public void save() {
-        if (yaml == null || file == null) return;
+        if (configYaml == null || configFile == null) return;
         try {
-            yaml.save(file);
-        } catch (IOException e) {
-            plugin.getLogger().warning("Failed to save config.yml: " + e.getMessage());
+            configYaml.save(configFile);
+        } catch (IOException exception) {
+            plugin.getLogger().warning("Failed to save config.yml: " + exception.getMessage());
         }
     }
 
     public int getAllowedMaces() {
-        return Math.max(0, yaml.getInt("allowed-maces", 3));
+        return Math.max(0, configYaml.getInt("allowed-maces", 3));
     }
 
     public void setAllowedMaces(int count) {
-        yaml.set("allowed-maces", Math.max(0, count));
+        configYaml.set("allowed-maces", Math.max(0, count));
         save();
     }
 
     public boolean isAllowMaceEnchanting() {
-        return yaml.getBoolean("allow-mace-enchanting", true);
+        return configYaml.getBoolean("allow-mace-enchanting", true);
     }
 
     public void setAllowMaceEnchanting(boolean allow) {
-        yaml.set("allow-mace-enchanting", allow);
+        configYaml.set("allow-mace-enchanting", allow);
         save();
     }
 
     public boolean isBlockContainerStorage() {
-        return yaml.getBoolean("block-container-storage", true);
+        return configYaml.getBoolean("block-container-storage", true);
     }
 
     public String msg(String key) {
-        String prefix = color(yaml.getString("messages.prefix", "&6[LimitedMaces]&r "));
-        String raw = yaml.getString("messages." + key, "");
-        if (raw == null) raw = "";
-        raw = raw.replace("\\n", "\n");
-        return prefix + color(raw);
+        String prefix = color(configYaml.getString("messages.prefix", "&6[LimitedMaces]&r "));
+        String rawMessage = configYaml.getString("messages." + key, "");
+        if (rawMessage == null) rawMessage = "";
+        rawMessage = rawMessage.replace("\\n", "\n");
+        return prefix + color(rawMessage);
     }
 
-    public String msgNoPrefix(String key) {
-        String raw = yaml.getString("messages." + key, "");
-        if (raw == null) raw = "";
-        raw = raw.replace("\\n", "\n");
-        return color(raw);
-    }
-
-    public String color(String s) {
-        return ChatColor.translateAlternateColorCodes('&', s == null ? "" : s);
+    public String color(String message) {
+        return ChatColor.translateAlternateColorCodes('&', message == null ? "" : message);
     }
 }
