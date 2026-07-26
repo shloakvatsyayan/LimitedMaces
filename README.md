@@ -65,7 +65,7 @@ Data file is located at: `plugins/LimitedMaces/maces.yml`. **_DO NOT TOUCH THIS 
 ### Default / Example `config.yml`
 
 ```yml
-version: 1.1.4
+version: 1.2.0
 
 # Maximum number of maces allowed on the server
 allowed-maces: 3
@@ -103,5 +103,12 @@ If this is not automatically done or you face issues with this process, feel fre
 ## Compatibility
 
 * **Minecraft 1.21.x**
+* **Minecraft Java Edition 26.x**
 * Designed to be lightweight and efficient
 * No dependencies required
+
+The default Gradle build uses the `1.21.8` Spigot API baseline so one jar remains compatible with 1.21.x servers. To validate against a 26.x API, run:
+
+```sh
+./gradlew build -PminecraftApiVersion=26.2
+```

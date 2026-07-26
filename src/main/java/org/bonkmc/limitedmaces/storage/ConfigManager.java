@@ -11,7 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 
 public final class ConfigManager {
-    private static final String CONFIG_VERSION = "1.1.5";
+    private static final String CONFIG_VERSION = "1.2.0";
 
     private final JavaPlugin plugin;
     private File configFile;
