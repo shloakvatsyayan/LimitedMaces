@@ -2,15 +2,19 @@ package org.bonkmc.limitedmaces;
 
 import org.bonkmc.limitedmaces.commands.ClearUntrackedMacesCommand;
 import org.bonkmc.limitedmaces.commands.GetUntrackedMaceCommand;
+import org.bonkmc.limitedmaces.commands.LimitedMacesCommand;
 import org.bonkmc.limitedmaces.commands.MacesCommand;
 import org.bonkmc.limitedmaces.commands.RemoveMaceCommand;
 import org.bonkmc.limitedmaces.listeners.ContainerBlockListener;
 import org.bonkmc.limitedmaces.listeners.CraftingListener;
+import org.bonkmc.limitedmaces.listeners.InventoryTrackingListener;
 import org.bonkmc.limitedmaces.listeners.TrackingListener;
 import org.bonkmc.limitedmaces.recipes.RecipeController;
 import org.bonkmc.limitedmaces.storage.ConfigManager;
 import org.bonkmc.limitedmaces.storage.ConfigMigrator;
 import org.bonkmc.limitedmaces.storage.MaceRegistry;
+import org.bonkmc.limitedmaces.updates.StartupUpdateNotifier;
+import org.bonkmc.limitedmaces.updates.UpdateService;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.PluginCommand;
@@ -23,6 +27,7 @@ public final class LimitedMaces extends JavaPlugin {
     private ConfigManager configManager;
     private MaceRegistry maceRegistry;
     private RecipeController recipeController;
+    private UpdateService updateService;
 
     @Override
     public void onEnable() {
@@ -36,10 +41,16 @@ public final class LimitedMaces extends JavaPlugin {
         this.maceRegistry.load();
 
         this.recipeController = new RecipeController(this);
+        this.updateService = new UpdateService(this);
 
         Bukkit.getPluginManager().registerEvents(new CraftingListener(this), this);
         Bukkit.getPluginManager().registerEvents(new ContainerBlockListener(this), this);
+        Bukkit.getPluginManager().registerEvents(new InventoryTrackingListener(this), this);
         Bukkit.getPluginManager().registerEvents(new TrackingListener(this), this);
+        Bukkit.getPluginManager().registerEvents(new StartupUpdateNotifier(this, updateService), this);
+
+        LimitedMacesCommand limitedMacesCommand = new LimitedMacesCommand(this, updateService);
+        registerTabCommand("limitedmaces", limitedMacesCommand, limitedMacesCommand);
 
         MacesCommand macesCommand = new MacesCommand(this);
         registerTabCommand("maces", macesCommand, macesCommand);

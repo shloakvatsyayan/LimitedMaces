@@ -6,6 +6,9 @@ authors: [ Pyro ]
 website: https://discord.gg/bonknetwork
 
 commands:
+  limitedmaces:
+    description: View LimitedMaces information, reload the config, or install an update
+    usage: /limitedmaces <info|reload|update>
   maces:
     description: View tracked maces, reload config, set limit, or toggle enchanting
     usage: /maces [reload|setlimit <n>|enchanting <on|off>]
@@ -24,6 +27,10 @@ commands:
     permission: limitedmaces.remove
 
 permissions:
+  limitedmaces.info:
+    default: op
+  limitedmaces.update:
+    default: op
   limitedmaces.use:
     default: op
   limitedmaces.reload:

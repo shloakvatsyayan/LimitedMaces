@@ -37,10 +37,6 @@ public final class ContainerBlockListener implements Listener {
         }
 
         InventoryView inventoryView = event.getView();
-        if (plugin.cfg().isAllowMaceEnchanting() && rules.isMaceWorkbench(inventoryView)) {
-            return;
-        }
-        
         if (!rules.shouldBlockTop(inventoryView)) {
             return;
         }
@@ -91,10 +87,6 @@ public final class ContainerBlockListener implements Listener {
         }
 
         InventoryView inventoryView = event.getView();
-        if (plugin.cfg().isAllowMaceEnchanting() && rules.isMaceWorkbench(inventoryView)) {
-            return;
-        }
-        
         if (!rules.shouldBlockTop(inventoryView)) {
             return;
         }
@@ -127,11 +119,7 @@ public final class ContainerBlockListener implements Listener {
                 return;
             }
         }
-        
-        if (plugin.cfg().isAllowMaceEnchanting() && rules.isMaceWorkbench(inventoryView)) {
-            return;
-        }
-        
+
         if (!rules.shouldBlockTop(inventoryView)) {
             return;
         }
@@ -173,15 +161,12 @@ public final class ContainerBlockListener implements Listener {
             return;
         }
 
-        Inventory topInventory = event.getView().getTopInventory();
-        if (topInventory == null) {
+        InventoryView inventoryView = event.getView();
+        if (!rules.shouldBlockTop(inventoryView)) {
             return;
         }
 
-        if (plugin.cfg().isAllowMaceEnchanting() && rules.isMaceWorkbench(topInventory)) {
-            return;
-        }
-
+        Inventory topInventory = inventoryView.getTopInventory();
         if (maceReturner.returnStoredMaces(player, topInventory)) {
             player.sendMessage(plugin.cfg().msg("containers-blocked"));
             plugin.recipes().syncWithLimit();

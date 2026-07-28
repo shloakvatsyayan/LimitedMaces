@@ -32,8 +32,9 @@ final class MaceInventoryNormalizer {
 
         PlayerInventory inventory = player.getInventory();
         List<ItemStack> inventoryStacks = new ArrayList<>();
-        inventoryStacks.addAll(Arrays.asList(inventory.getContents()));
-        inventoryStacks.add(inventory.getItemInOffHand());
+        inventoryStacks.addAll(Arrays.asList(inventory.getStorageContents()));
+        inventoryStacks.addAll(Arrays.asList(inventory.getArmorContents()));
+        inventoryStacks.addAll(Arrays.asList(inventory.getExtraContents()));
 
         Set<UUID> seenMaceIds = new HashSet<>();
         for (ItemStack stack : inventoryStacks) {
@@ -64,9 +65,7 @@ final class MaceInventoryNormalizer {
             return;
         }
 
-        if (!"HELD".equals(record.status)) {
-            registry.updateLastSeen(maceId, player, player.getLocation(), "HELD");
-        }
+        registry.updateHeld(maceId, player);
     }
 
     private void registerMissingTaggedMace(Player player, UUID maceId) {

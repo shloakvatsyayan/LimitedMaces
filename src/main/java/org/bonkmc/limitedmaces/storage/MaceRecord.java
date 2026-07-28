@@ -2,6 +2,7 @@ package org.bonkmc.limitedmaces.storage;
 
 import org.bukkit.Location;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public final class MaceRecord {
@@ -22,6 +23,10 @@ public final class MaceRecord {
     public long lastSeenAt;
     public String status;
     public boolean isUntracked;
+
+    public boolean isHeldBy(UUID playerId) {
+        return "HELD".equals(status) && Objects.equals(lastHolder, playerId);
+    }
 
     public void setLocation(Location loc) {
         if (loc == null || loc.getWorld() == null) return;

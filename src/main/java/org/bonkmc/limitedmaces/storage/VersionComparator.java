@@ -1,14 +1,14 @@
 package org.bonkmc.limitedmaces.storage;
 
-final class VersionComparator {
+public final class VersionComparator {
     private VersionComparator() {
     }
 
-    static boolean isOlderOrEqual(String version, String targetVersion) {
+    public static boolean isOlderOrEqual(String version, String targetVersion) {
         return compare(version, targetVersion) <= 0;
     }
 
-    static boolean isNewer(String version, String baselineVersion) {
+    public static boolean isNewer(String version, String baselineVersion) {
         return compare(version, baselineVersion) > 0;
     }
 
