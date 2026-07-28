@@ -1,4 +1,4 @@
-version: 1.2.0
+version: 1.2.1
 allowed-maces: 3
 allow-mace-enchanting: true
 block-container-storage: true
@@ -12,3 +12,11 @@ messages:
   illegal-removed: "&cAn illegal/untracked mace was removed."
   reload: "&aLimitedMaces config reloaded."
   no-permission: "&cYou don't have permission."
+  limitedmaces-usage: "&cUsage: /limitedmaces <info|reload|update>"
+  update-checking: "&7Checking Modrinth for the latest compatible version..."
+  update-in-progress: "&eA LimitedMaces update is already in progress."
+  update-no-compatible-version: "&cNo LimitedMaces version supports Minecraft %game_version%."
+  update-up-to-date: "&aLimitedMaces is already up to date at version %version%."
+  update-downloading: "&eDownloading LimitedMaces %version% from Modrinth..."
+  update-success: "&aLimitedMaces %version% was downloaded. Restart the server for the update to take effect."
+  update-failed: "&cLimitedMaces update failed: %error%"

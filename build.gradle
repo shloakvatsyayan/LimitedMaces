@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'org.bonkmc'
-version = '1.2.0'
+version = '1.2.1'
 
 def minecraftApiVersion = providers.gradleProperty('minecraftApiVersion')
         .orElse('1.21.8')
@@ -23,6 +23,9 @@ repositories {
 
 dependencies {
     compileOnly("org.spigotmc:spigot-api:${minecraftApiVersion}-R0.1-SNAPSHOT")
+    testImplementation("org.spigotmc:spigot-api:${minecraftApiVersion}-R0.1-SNAPSHOT")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.13.4")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.13.4")
 }
 
 tasks {
@@ -47,6 +50,10 @@ tasks.withType(JavaCompile).configureEach {
     if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
         options.release.set(targetJavaVersion)
     }
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 processResources {

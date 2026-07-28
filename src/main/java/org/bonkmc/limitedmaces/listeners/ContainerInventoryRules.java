@@ -22,9 +22,11 @@ final class ContainerInventoryRules {
     private static final Set<String> MACE_WORKBENCH_INVENTORIES = Set.of("ANVIL", "ENCHANTING", "GRINDSTONE");
 
     private final LimitedMaces plugin;
+    private final ContainerStorageDetector storageDetector;
 
     ContainerInventoryRules(LimitedMaces plugin) {
         this.plugin = plugin;
+        this.storageDetector = new ContainerStorageDetector();
     }
 
     boolean isTopSlot(InventoryView inventoryView, int rawSlot) {
@@ -45,16 +47,11 @@ final class ContainerInventoryRules {
             return false;
         }
 
-        return !plugin.cfg().isAllowMaceEnchanting() || !isMaceWorkbench(topInventory);
-    }
-
-    boolean isMaceWorkbench(InventoryView inventoryView) {
-        if (inventoryView == null) {
-            return false;
+        if (isMaceWorkbench(topInventory)) {
+            return !plugin.cfg().isAllowMaceEnchanting();
         }
 
-        Inventory topInventory = inventoryView.getTopInventory();
-        return topInventory != null && isMaceWorkbench(topInventory);
+        return storageDetector.isStorageInventory(inventoryView);
     }
 
     boolean isMaceWorkbench(Inventory inventory) {

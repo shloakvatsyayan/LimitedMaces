@@ -21,7 +21,10 @@ Download on Modrinth: https://modrinth.com/plugin/limitedmaces
   - Barrels
   - Shulker Boxes
   - Any other container
-  
+
+  Virtual player-inventory views from administration plugins such as OpenInv and InvSee++ remain usable.
+  Mace ownership tracking is reconciled after transfers through these views.
+
   Hoppers **cannot** pick up maces.
 
 - **Crafting Control**
@@ -42,12 +45,20 @@ Download on Modrinth: https://modrinth.com/plugin/limitedmaces
   - When `allow-mace-enchanting` is **true**, maces can be placed into **Enchanting Tables** and **Anvils**
   - When **false**, maces cannot be placed into enchant tables or anvils, making them completely unenchantable
 
+- **Update Management**
+  - Check the latest Modrinth version compatible with the server's exact Minecraft version
+  - Download compatible updates directly into the server's plugins folder
+  - Receive a startup warning when a newer compatible version is available
+
 ---
 
 ## Commands
 
 | Command | Permission | Description |
 |---------|------------|-------------|
+| `/limitedmaces` or `/limitedmaces info` | `limitedmaces.info` | View installed and latest compatible versions |
+| `/limitedmaces reload` | `limitedmaces.reload` | Reload `config.yml` |
+| `/limitedmaces update` | `limitedmaces.update` | Download the latest compatible version from Modrinth |
 | `/maces` | `limitedmaces.use` | View tracked maces |
 | `/maces reload` | `limitedmaces.reload` | Reload the config |
 | `/maces setlimit <n>` | `limitedmaces.setlimit` | Set the mace limit |
@@ -67,7 +78,7 @@ Data file is located at: `plugins/LimitedMaces/maces.yml`. **_DO NOT TOUCH THIS 
 ### Default / Example `config.yml`
 
 ```yml
-version: 1.2.0
+version: 1.2.1
 
 # Maximum number of maces allowed on the server
 allowed-maces: 3
@@ -75,6 +86,9 @@ allowed-maces: 3
 # Whether maces can be enchanted
 # If false, maces cannot be placed into enchant tables or anvils
 allow-mace-enchanting: true
+
+# Whether physical containers reject maces
+block-container-storage: true
 
 messages:
   prefix: "&6[LimitedMaces]&r "
@@ -85,6 +99,14 @@ messages:
   illegal-removed: "&cAn illegal/untracked mace was removed."
   reload: "&aLimitedMaces config reloaded."
   no-permission: "&cYou don't have permission."
+  limitedmaces-usage: "&cUsage: /limitedmaces <info|reload|update>"
+  update-checking: "&7Checking Modrinth for the latest compatible version..."
+  update-in-progress: "&eA LimitedMaces update is already in progress."
+  update-no-compatible-version: "&cNo LimitedMaces version supports Minecraft %game_version%."
+  update-up-to-date: "&aLimitedMaces is already up to date at version %version%."
+  update-downloading: "&eDownloading LimitedMaces %version% from Modrinth..."
+  update-success: "&aLimitedMaces %version% was downloaded. Restart the server for the update to take effect."
+  update-failed: "&cLimitedMaces update failed: %error%"
 ```
 
 ---

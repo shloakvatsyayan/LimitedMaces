@@ -129,6 +129,14 @@ public final class MaceRegistry {
         save();
     }
 
+    public void updateHeld(UUID maceId, Player holder) {
+        MaceRecord record = activeMaces.get(maceId);
+        if (record == null || record.isHeldBy(holder.getUniqueId())) {
+            return;
+        }
+        updateLastSeen(maceId, holder, holder.getLocation(), "HELD");
+    }
+
     public void updateDropped(UUID maceId, Location location, Player lastHolder) {
         MaceRecord record = activeMaces.get(maceId);
         if (record == null) {

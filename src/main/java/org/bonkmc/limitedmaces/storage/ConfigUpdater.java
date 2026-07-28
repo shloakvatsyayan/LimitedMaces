@@ -47,6 +47,8 @@ public final class ConfigUpdater {
                 config.set("block-container-storage", true);
             }
         });
+
+        addUpdate("1.2.1", ConfigDefaults::addLimitedMacesMessages);
     }
 
     private void addUpdate(String targetVersion, Consumer<YamlConfiguration> updateAction) {

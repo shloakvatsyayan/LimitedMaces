@@ -9,9 +9,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.Map;
 
 public final class ConfigManager {
-    private static final String CONFIG_VERSION = "1.2.0";
+    private static final String CONFIG_VERSION = "1.2.1";
 
     private final JavaPlugin plugin;
     private File configFile;
@@ -45,6 +46,7 @@ public final class ConfigManager {
                 fallbackConfig.set("messages.illegal-removed", "&cAn illegal/untracked mace was removed.");
                 fallbackConfig.set("messages.reload", "&aLimitedMaces config reloaded.");
                 fallbackConfig.set("messages.no-permission", "&cYou don't have permission.");
+                ConfigDefaults.addLimitedMacesMessages(fallbackConfig);
 
                 try {
                     fallbackConfig.save(configFile);
@@ -109,9 +111,16 @@ public final class ConfigManager {
     }
 
     public String msg(String key) {
+        return msg(key, Map.of());
+    }
+
+    public String msg(String key, Map<String, String> placeholders) {
         String prefix = color(configYaml.getString("messages.prefix", "&6[LimitedMaces]&r "));
         String rawMessage = configYaml.getString("messages." + key, "");
         if (rawMessage == null) rawMessage = "";
+        for (Map.Entry<String, String> placeholder : placeholders.entrySet()) {
+            rawMessage = rawMessage.replace(placeholder.getKey(), placeholder.getValue());
+        }
         rawMessage = rawMessage.replace("\\n", "\n");
         return prefix + color(rawMessage);
     }
